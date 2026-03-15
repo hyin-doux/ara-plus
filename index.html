@@ -22,23 +22,23 @@
 html{background:var(--bg)}
 body{font-family:var(--sans);font-size:14px;color:var(--text);background:var(--bg);min-height:100vh}
 
-.top-header{background:var(--text);color:var(--bg);padding:14px 18px 12px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:60}
-.top-header h1{font-size:15px;font-weight:500;letter-spacing:-.3px}
-.hdate{font-size:11px;color:rgba(255,255,255,.42);margin-top:2px;font-family:var(--mono)}
+.top-header{background:var(--text);color:var(--bg);padding:14px 18px 10px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:60}
+.top-header h1{font-size:18px;font-weight:700;letter-spacing:-.5px}
+.hdate{font-size:12px;color:rgba(255,255,255,.5);margin-top:3px;font-family:var(--mono)}
 .unpaid-val{font-family:var(--mono);font-size:14px;font-weight:500;color:#F5A89A}
 
-.client-tabs{display:flex;background:var(--text);border-bottom:1px solid rgba(255,255,255,.1);position:sticky;top:49px;z-index:59}
+.client-tabs{display:flex;background:var(--text);border-bottom:1px solid rgba(255,255,255,.1);position:sticky;top:54px;z-index:59}
 .client-tab{flex:1;padding:11px 4px;font-size:15px;font-weight:400;font-family:var(--sans);border:none;background:transparent;color:rgba(255,255,255,.42);cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap}
 .client-tab.on{background:#fff;color:#1A1916;font-weight:700;border-bottom:3px solid #fff}
 
-.kpi-bar{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface2);border-bottom:1px solid var(--border);position:sticky;top:88px;z-index:58}
+.kpi-bar{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface2);border-bottom:1px solid var(--border);position:sticky;top:93px;z-index:58}
 .kpi-item{padding:9px 12px;border-right:1px solid var(--border)}
 .kpi-item:last-child{border-right:none}
 .kpi-val{font-family:var(--mono);font-size:15px;font-weight:500}
 .kpi-lbl{font-size:10px;color:var(--text3);margin-top:1px}
 .kpi-item.g .kpi-val{color:var(--green)}.kpi-item.r .kpi-val{color:var(--red)}.kpi-item.b .kpi-val{color:var(--blue)}
 
-.nav{display:flex;overflow-x:auto;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:126px;z-index:57;scrollbar-width:none}
+.nav{display:flex;overflow-x:auto;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:131px;z-index:57;scrollbar-width:none}
 .nav::-webkit-scrollbar{display:none}
 .nav button{flex:1;min-width:58px;padding:10px 4px;font-size:12px;font-family:var(--sans);font-weight:400;border:none;background:transparent;color:var(--text2);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all .15s}
 .nav button.on{color:var(--text);font-weight:500;border-bottom:2px solid var(--text)}
@@ -64,7 +64,7 @@ body{font-family:var(--sans);font-size:14px;color:var(--text);background:var(--b
 .bk{background:var(--surface2);color:var(--text2)}
 
 label{display:block;font-size:11px;font-weight:500;color:var(--text2);margin-bottom:5px;letter-spacing:.3px}
-input,select,textarea{width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);outline:none;font-family:var(--sans);transition:border-color .15s}
+input,select,textarea{width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);outline:none;font-family:var(--sans);transition:border-color .15s;min-width:0}
 input:focus,select:focus,textarea:focus{border-color:var(--text);background:var(--surface)}
 input[readonly]{background:var(--surface2);color:var(--text2);cursor:default}
 .fr{margin-bottom:12px}
@@ -166,6 +166,10 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--text);color:var(--bg);padding:10px 22px;border-radius:24px;font-size:13px;font-weight:500;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.25)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* 미납 경고 pulse */
+.unpaid-warn{animation:pulse-warn 2s ease-in-out infinite}
+@keyframes pulse-warn{0%,100%{opacity:1}50%{opacity:.5}}
+
 @media(max-width:400px){
   .kpi-bar{grid-template-columns:1fr 1fr}
   .fg{grid-template-columns:1fr}.fg3{grid-template-columns:1fr 1fr}.fg4{grid-template-columns:1fr 1fr}
@@ -205,10 +209,19 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
 </div>
 
 <div class="top-header">
-  <div><h1>숯 물량 관리</h1><div class="hdate" id="hdate">—</div></div>
-  <div style="text-align:right">
-    <div style="font-size:10px;color:rgba(255,255,255,.4)">미납 잔액</div>
-    <div class="unpaid-val" id="h-unpaid">—</div>
+  <div>
+    <h1>숯 물량 관리</h1>
+    <div class="hdate" id="hdate">—</div>
+  </div>
+  <div style="text-align:right;display:flex;flex-direction:column;gap:4px">
+    <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
+      <div style="font-size:10px;color:rgba(255,255,255,.4)">송금완료</div>
+      <div style="font-family:var(--mono);font-size:13px;font-weight:500;color:#9FE1CB" id="h-paid">—</div>
+    </div>
+    <div id="h-unpaid-row" style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
+      <div style="font-size:10px;color:rgba(255,255,255,.4)">미납</div>
+      <div class="unpaid-val" id="h-unpaid">—</div>
+    </div>
   </div>
 </div>
 
@@ -226,9 +239,9 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
 </div>
 
 <nav class="nav">
-  <button class="on" onclick="go('ledger',this)">장부</button>
+  <button onclick="go('ledger',this)">장부</button>
   <button onclick="go('packing',this)">분할포장</button>
-  <button onclick="go('new',this)">신규입력</button>
+  <button class="on" onclick="go('new',this)">신규입력</button>
   <button onclick="go('unpaid',this)">미납관리</button>
   <button onclick="go('stats',this)">통계</button>
   <button onclick="go('settings',this)">설정</button>
@@ -237,7 +250,7 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
 <div class="main">
 
 <!-- ══ 장부 ══ -->
-<div id="page-ledger" class="page on">
+<div id="page-ledger" class="page">
   <div class="sl" style="margin-bottom:12px">전체 회차 장부 <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0"> — 행 클릭 시 수정</span></div>
   <div class="tbl-wrap">
     <table>
@@ -264,17 +277,21 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
 
     <!-- 하리/위옌 -->
     <div id="pk-hw-fields">
-      <div class="fg">
-        <div class="fr"><label>이번 박스 수</label>
+      <div class="fg3">
+        <div class="fr"><label>깡통 수</label>
+          <input type="number" id="pk-cans" min="1" max="16" placeholder="예: 4" oninput="pkCalcHW()">
+          <div class="hint">16깡통=40포대</div>
+        </div>
+        <div class="fr"><label>박스 수</label>
           <input type="number" id="pk-boxes" min="0" placeholder="예: 10" oninput="pkCalcHW()">
         </div>
         <div class="fr"><label>봉지 수</label>
           <input type="number" id="pk-bags" min="0" placeholder="봉지 수" oninput="pkCalcHW()">
-          <div class="hint">봉지 5개 = 1박스 자동환산</div>
+          <div class="hint">5봉지=1박스 자동환산</div>
         </div>
       </div>
       <div id="pk-convert-box" class="convert-box" style="display:none">
-        <div class="cv-title">봉지→박스 환산</div>
+        <div class="cv-title">환산 결과</div>
         <div class="convert-result">
           <span class="cr-main" id="pk-converted">—</span>
           <span class="cr-detail" id="pk-converted-detail"></span>
@@ -300,7 +317,7 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
 </div>
 
 <!-- ══ 신규입력 ══ -->
-<div id="page-new" class="page">
+<div id="page-new" class="page on">
   <div class="sl">신규 회차 등록</div>
 
   <!-- 하리/위옌: 배치 개념 설명 -->
@@ -329,23 +346,19 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
         </select>
       </div>
     </div>
-    <div class="fg">
-      <div class="fr"><label>작업일 (2차탄화일)</label><input type="date" id="n-work"></div>
-      <div class="fr"><label>송금일</label><input type="date" id="n-send"></div>
-    </div>
+    <div class="fr"><label>작업일 (2차탄화일)</label><input type="date" id="n-work"></div>
+    <div class="fr"><label>송금일</label><input type="date" id="n-send"></div>
     <div class="fg">
       <div class="fr"><label>결제 상태</label>
         <select id="n-pay"><option value="미납">미납</option><option value="송금완료">송금완료</option></select>
       </div>
-      <div class="fr"><label>거래처</label><input type="text" id="n-buyer" placeholder="거래처명"></div>
-    </div>
-    <div class="fg">
-      <div class="fr"><label>출고지</label><input type="text" id="n-dest" placeholder="출고지"></div>
       <div class="fr"><label>투입 포대 수</label>
         <input type="number" id="n-sacks" value="40" placeholder="40">
         <div class="hint">기본 40포대 = 16깡통 = 1회 작업</div>
       </div>
     </div>
+    <input type="hidden" id="n-buyer">
+    <input type="hidden" id="n-dest">
 
     <!-- 하리/위옌 선별포장 결과 -->
     <div id="n-hw-result">
@@ -368,12 +381,10 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
           </div>
         </div>
       </div>
-      <div class="fg">
-        <div class="fr"><label>금액 (원)</label>
-          <input type="number" id="n-amount-hw" placeholder="직접입력" oninput="nManual=true">
-        </div>
-        <div class="fr"><label>그릴 금액</label><input type="number" id="n-grill-hw" placeholder="0"></div>
+      <div class="fr"><label>금액 (원)</label>
+        <input type="number" id="n-amount-hw" placeholder="직접입력" oninput="nManual=true">
       </div>
+      <input type="hidden" id="n-grill-hw">
     </div>
 
     <!-- 아디 -->
@@ -411,11 +422,8 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
       </div>
     </div>
 
-    <div class="fg">
-      <div class="fr"><label>부가세</label>
-        <select id="n-tax"><option value="발행전">발행 전</option><option value="발행완료">발행 완료</option></select>
-      </div>
-      <div class="fr"></div>
+    <div class="fr"><label>부가세</label>
+      <select id="n-tax"><option value="발행전">발행 전</option><option value="발행완료">발행 완료</option></select>
     </div>
     <div class="fr"><label>담당자 메모</label><input type="text" id="n-mgr" placeholder="예: (자금출처)쿠팡 매출+기타"></div>
     <div class="fr"><label>메모</label><textarea id="n-memo" rows="2" placeholder="특이사항 등"></textarea></div>
@@ -482,10 +490,39 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
     <div id="pw-msg" style="font-size:13px;min-height:20px;margin-top:4px;color:var(--green)"></div>
     <button class="btn btn-p" onclick="changePassword()">비밀번호 변경</button>
   </div>
-  <div class="sl" style="margin-top:20px">데이터 관리</div>
+
+  <div class="sl" style="margin-top:20px">데이터 백업 · 복원</div>
+  <div class="ib ib-r">⚠ 데이터는 이 브라우저에만 저장됩니다. 정기적으로 백업해주세요.<br>캐시 삭제, 기기 변경 시 데이터가 사라집니다.</div>
   <div class="card">
-    <div class="row"><span class="k">현재 거래처</span><span class="v" id="settings-client">—</span></div>
-    <div class="row"><span class="k">저장된 회차 수</span><span class="v" id="settings-count">—</span></div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:10px">
+      <strong>전체 거래처</strong>(하리·아디·위옌) 데이터를 JSON 파일로 백업/복원합니다.
+    </div>
+    <div class="fg" style="margin-bottom:8px">
+      <button class="btn btn-p" onclick="exportBackup()">📦 백업 다운로드</button>
+      <button class="btn btn-o" onclick="ge('import-file').click()">📂 백업 파일 복원</button>
+    </div>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importBackup(event)">
+    <div id="backup-msg" style="font-size:12px;min-height:18px;margin-top:4px;color:var(--green)"></div>
+    <div id="backup-info" style="font-size:11px;color:var(--text3);margin-top:8px;font-family:var(--mono)"></div>
+  </div>
+
+  <div class="sl" style="margin-top:20px">거래처 기본값 설정</div>
+  <div class="ib ib-b">여기서 설정한 값이 신규 회차 등록 시 자동으로 적용됩니다.</div>
+  <div class="card">
+    <div class="fg">
+      <div class="fr"><label>거래처명</label><input type="text" id="set-buyer" placeholder="예: 한아"></div>
+      <div class="fr"><label>출고지</label><input type="text" id="set-dest" placeholder="예: 김포공장"></div>
+    </div>
+    <div class="fr"><label>포대 단가 (원)</label><input type="number" id="set-price" placeholder="예: 25500"></div>
+    <button class="btn btn-p" onclick="saveClientMeta()">저장</button>
+  </div>
+  <div class="sl" style="margin-top:20px">현재 거래처 정보</div>
+  <div class="card">
+    <div class="row"><span class="k">탭</span><span class="v" id="settings-client">—</span></div>
+    <div class="row"><span class="k">거래처</span><span class="v" id="settings-buyer">—</span></div>
+    <div class="row"><span class="k">출고지</span><span class="v" id="settings-dest">—</span></div>
+    <div class="row"><span class="k">포대 단가</span><span class="v" id="settings-price">—</span></div>
+    <div class="row"><span class="k">저장 회차 수</span><span class="v" id="settings-count">—</span></div>
   </div>
   <div class="sl">로그아웃</div>
   <div class="card">
@@ -518,12 +555,10 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
       <div class="fr"><label>결제 상태</label>
         <select id="edit-pay"><option value="미납">미납</option><option value="송금완료">송금완료</option></select>
       </div>
-      <div class="fr"><label>작업일</label><input type="date" id="edit-work"></div>
-    </div>
-    <div class="fg">
-      <div class="fr"><label>송금일</label><input type="date" id="edit-send"></div>
       <div class="fr"><label>금액 (원)</label><input type="number" id="edit-amount"></div>
     </div>
+    <div class="fr"><label>작업일</label><input type="date" id="edit-work"></div>
+    <div class="fr"><label>송금일</label><input type="date" id="edit-send"></div>
     <!-- 하리/위옌 -->
     <div id="edit-hw-fields">
       <div class="fg">
@@ -546,10 +581,8 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
         <div class="fr"><label>총 중량 (kg)</label><input type="number" id="edit-total-kg"></div>
       </div>
     </div>
-    <div class="fg">
-      <div class="fr"><label>거래처</label><input type="text" id="edit-buyer"></div>
-      <div class="fr"><label>출고지</label><input type="text" id="edit-dest"></div>
-    </div>
+    <input type="hidden" id="edit-buyer">
+    <input type="hidden" id="edit-dest">
     <div class="fg">
       <div class="fr"><label>부가세</label>
         <select id="edit-tax"><option value="발행전">발행 전</option><option value="발행완료">발행 완료</option></select>
@@ -637,6 +670,99 @@ function sPR(o){DB.s(CL,'pr',o)}
 function getMeta(){return DB.g(CL,'meta')||INIT[CL]?.meta||{}}
 function isAdi(){return getMeta().mode==='adi'}
 
+/* ══ 백업/복원 ══ */
+function exportBackup(){
+  const data={};
+  ['hari','adi','wiyen'].forEach(cl=>{
+    data[cl]={
+      entries:DB.g(cl,'entries')||[],
+      pr:DB.g(cl,'pr')||{},
+      nid:DB.g(cl,'nid')||1,
+      meta:DB.g(cl,'meta')||{}
+    };
+  });
+  data._exportDate=new Date().toISOString();
+  data._version='cm4_v1';
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const d=today().replace(/-/g,'');
+  a.href=url;a.download=`숯물량_백업_${d}.json`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  const msg=ge('backup-msg');
+  msg.style.color='var(--green)';
+  msg.textContent='✓ 백업 파일 다운로드 완료 ('+new Date().toLocaleTimeString('ko')+')';
+  updateBackupInfo();
+  setTimeout(()=>msg.textContent='',5000);
+}
+function importBackup(event){
+  const file=event.target.files[0];
+  if(!file) return;
+  const msg=ge('backup-msg');
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!data._version||!data.hari){
+        msg.style.color='var(--red)';
+        msg.textContent='✗ 올바른 백업 파일이 아닙니다';
+        return;
+      }
+      // 요약 표시 후 확인
+      let summary='';
+      ['hari','adi','wiyen'].forEach(cl=>{
+        const cnt=(data[cl]?.entries||[]).length;
+        const labels={hari:'하리',adi:'아디',wiyen:'위옌'};
+        if(cnt) summary+=labels[cl]+' '+cnt+'건, ';
+      });
+      summary=summary.replace(/, $/,'');
+      const exportDate=data._exportDate?new Date(data._exportDate).toLocaleString('ko'):'알 수 없음';
+      if(!confirm(`백업 파일을 복원하시겠습니까?\n\n📅 백업일: ${exportDate}\n📦 내용: ${summary}\n\n⚠ 현재 데이터가 모두 덮어씌워집니다.`)){
+        msg.style.color='var(--text2)';
+        msg.textContent='복원 취소됨';
+        event.target.value='';
+        return;
+      }
+      ['hari','adi','wiyen'].forEach(cl=>{
+        if(data[cl]){
+          DB.s(cl,'entries',data[cl].entries||[]);
+          DB.s(cl,'pr',data[cl].pr||{});
+          DB.s(cl,'nid',data[cl].nid||1);
+          DB.s(cl,'meta',data[cl].meta||{});
+        }
+      });
+      msg.style.color='var(--green)';
+      msg.textContent='✓ 복원 완료 — '+summary+' ('+exportDate+' 백업)';
+      toast('데이터 복원 완료');
+      updateBackupInfo();
+      // 현재 페이지 새로고침
+      updateHeader();setupModeUI();kpi();
+      const pid=document.querySelector('.nav button.on')?.getAttribute('onclick')?.match(/'(\w+)'/)?.[1]||'settings';
+      renderPage(pid);
+    }catch(err){
+      msg.style.color='var(--red)';
+      msg.textContent='✗ 파일 읽기 오류: '+err.message;
+    }
+    event.target.value='';
+  };
+  reader.readAsText(file);
+}
+function updateBackupInfo(){
+  const info=ge('backup-info');
+  let total=0;
+  ['hari','adi','wiyen'].forEach(cl=>{
+    total+=(DB.g(cl,'entries')||[]).length;
+  });
+  const size=new Blob([JSON.stringify({
+    hari:{entries:DB.g('hari','entries'),pr:DB.g('hari','pr'),nid:DB.g('hari','nid'),meta:DB.g('hari','meta')},
+    adi:{entries:DB.g('adi','entries'),pr:DB.g('adi','pr'),nid:DB.g('adi','nid'),meta:DB.g('adi','meta')},
+    wiyen:{entries:DB.g('wiyen','entries'),pr:DB.g('wiyen','pr'),nid:DB.g('wiyen','nid'),meta:DB.g('wiyen','meta')}
+  })]).size;
+  const kb=(size/1024).toFixed(1);
+  info.textContent=`현재 데이터: 전체 ${total}건 · 용량 약 ${kb}KB`;
+}
+
 /* ══ 클라이언트 전환 ══ */
 function switchClient(cl,btn){
   CL=cl;
@@ -648,9 +774,14 @@ function switchClient(cl,btn){
   renderPage(pid);
 }
 function updateHeader(){
-  const labels={hari:'하리 (40ft 컨테이너)',adi:'아디 (40ft 컨테이너)',wiyen:'위옌 (40ft 컨테이너)'};
+  const labels={hari:'하리',adi:'아디',wiyen:'위옌'};
+  const meta=getMeta();
+  const buyer=meta.buyer?` · ${meta.buyer}`:'';
   const now=new Date();
-  ge('hdate').textContent=labels[CL]+' · '+now.getFullYear()+'.'+(now.getMonth()+1).toString().padStart(2,'0')+'.'+now.getDate().toString().padStart(2,'0');
+  ge('hdate').textContent=labels[CL]+buyer+' · '+now.getFullYear()+'.'+(now.getMonth()+1).toString().padStart(2,'0')+'.'+now.getDate().toString().padStart(2,'0');
+
+  // 미납 장기 경고 체크
+  checkLongOverdue();
 }
 function setupModeUI(){
   const adi=isAdi();
@@ -666,9 +797,35 @@ function setupModeUI(){
   ge('n-adi-result').style.display=adi?'block':'none';
   ge('st-hw-section').style.display=adi?'none':'block';
   ge('st-adi-section').style.display=adi?'block':'none';
-  const meta=getMeta();
-  ge('n-buyer').value=meta.buyer||'';
-  ge('n-dest').value=meta.dest||'';
+}
+
+/* ══ 미납 장기 경고 ══ */
+function checkLongOverdue(){
+  const E=gE();
+  const now=new Date();
+  const unpaidRow=ge('h-unpaid-row');
+  const unpaidEl=ge('h-unpaid');
+  let hasLongOverdue=false;
+  let maxDays=0;
+
+  E.forEach(e=>{
+    if(e.pay!=='미납'||!e.amount) return;
+    const ref=e.workDate||e.sendDate;
+    if(!ref) return;
+    const diff=Math.floor((now-new Date(ref))/(1000*60*60*24));
+    if(diff>30){
+      hasLongOverdue=true;
+      maxDays=Math.max(maxDays,diff);
+    }
+  });
+
+  if(hasLongOverdue){
+    unpaidEl.classList.add('unpaid-warn');
+    unpaidEl.title=`최장 ${maxDays}일 경과 미납 건 있음`;
+  } else {
+    unpaidEl.classList.remove('unpaid-warn');
+    unpaidEl.title='';
+  }
 }
 
 /* ══ KPI ══ */
@@ -685,11 +842,14 @@ function kpi(){
     const tb=E.reduce((s,e)=>s+totalBoxes(e.boxes,e.bags),0);
     totalBoxVal=tb+'박스';
   }
+  const pA=E.filter(e=>e.pay==='송금완료').reduce((s,e)=>s+(e.amount||0),0);
   ge('k-rounds').textContent=rounds.length+'회';
   ge('k-boxes').textContent=totalBoxVal;
   ge('k-amount').textContent=tA>=1000000?(tA/10000).toFixed(0)+'만원':tA?fmtM(tA):'—';
   ge('k-unpaid-cnt').textContent=unp.length+'건';
   ge('h-unpaid').textContent=fmtM(uA);
+  if(ge('h-paid')) ge('h-paid').textContent=fmtM(pA);
+  checkLongOverdue();
 }
 
 /* ══ 장부 ══ */
@@ -738,8 +898,14 @@ function refreshLedger(){
       const tbStr=tb>0?tb+'박스':'—';
       const boxStr=e.boxes!=null?e.boxes+'박스':'—';
       const bagStr=e.bags!=null?(rem>0?rem+'봉지':'0봉지'):'—';
+      // 미납 장기 경고
+      let overdueMark='';
+      if(e.pay==='미납'&&e.amount&&e.workDate){
+        const diff=Math.floor((new Date()-new Date(e.workDate))/(1000*60*60*24));
+        if(diff>30) overdueMark=` <span class="badge br" style="font-size:9px" title="${diff}일 경과">⚠${diff}일</span>`;
+      }
       return `<tr class="clickable" onclick="openDrawer(${e.id})">
-        <td><strong>${e.name}</strong>${pb}</td>
+        <td><strong>${e.name}</strong>${pb}${overdueMark}</td>
         <td><span class="badge ${tc[e.type]||'bk'}">${e.type}</span></td>
         <td><span class="badge ${pc[e.pay]||'bk'}">${e.pay}</span></td>
         <td style="font-family:var(--mono)">${fmtD(e.workDate)}</td>
@@ -792,7 +958,14 @@ function calcConvert(boxesId,bagsId,convertBoxId,convertedId,detailId){
 }
 
 /* ══ 분할포장 ══ */
-function pkCalcHW(){calcConvert('pk-boxes','pk-bags','pk-convert-box','pk-converted','pk-converted-detail');}
+function pkCalcHW(){
+  const cans=parseInt(ge('pk-cans')?.value)||0;
+  const sacks=cans?Math.round(cans*2.5):0;
+  calcConvert('pk-boxes','pk-bags','pk-convert-box','pk-converted','pk-converted-detail');
+  const hint=ge('pk-cans')?.nextElementSibling;
+  if(hint&&cans) hint.textContent=cans+'깡통 = '+sacks+'포대';
+  else if(hint) hint.textContent='16깡통=40포대';
+}
 function pkCalcAdi(){
   const b=parseInt(ge('pk-adi-boxes').value)||0;
   const k=parseFloat(ge('pk-adi-kg').value)||0;
@@ -854,6 +1027,7 @@ function addPackRound(){
     ['pk-adi-boxes','pk-adi-kg','pk-adi-total-kg','pk-memo'].forEach(x=>ge(x).value='');
     toast(rn+'차 출고 추가 ('+boxes+'박스)');
   } else {
+    const cans=parseInt(ge('pk-cans').value)||null;
     const boxes=parseInt(ge('pk-boxes').value)||0;
     const bags=parseInt(ge('pk-bags').value)||0;
     if(!boxes&&!bags){toast('박스 또는 봉지 수를 입력해주세요');return;}
@@ -861,11 +1035,12 @@ function addPackRound(){
     const rem=remainBags(bags);
     const tb=boxes+extra;
     const rn=PR[id].length+1;
-    PR[id].push({round:rn,date,boxes,bags,bagsConverted:extra,remainBags:rem,totalBoxes:tb,memo,ts:Date.now()});
+    PR[id].push({round:rn,date,cans,sacks:cans?Math.round(cans*2.5):null,boxes,bags,bagsConverted:extra,remainBags:rem,totalBoxes:tb,memo,ts:Date.now()});
     sPR(PR);
-    ['pk-boxes','pk-bags','pk-memo'].forEach(x=>ge(x).value='');
+    ['pk-cans','pk-boxes','pk-bags','pk-memo'].forEach(x=>ge(x).value='');
     ge('pk-convert-box').style.display='none';
-    toast(rn+'차 포장 추가 ('+tb+'박스'+(rem>0?' +'+rem+'봉지':'')+')');
+    const cansStr=cans?cans+'깡통 · ':'';
+    toast(rn+'차 포장 추가 ('+cansStr+tb+'박스'+(rem>0?' +'+rem+'봉지':'')+')');
   }
   onPackSelect();renderPackList();refreshLedger();
 }
@@ -905,9 +1080,9 @@ function renderPackList(){
           ${packs.map(p=>`<div class="pack-round">
             <div>
               <span class="badge bb" style="margin-right:6px">${p.round}차</span>
-              <strong>${p.totalBoxes}박스</strong>
-              ${p.remainBags>0?' +'+p.remainBags+'봉지':''}
-              <span style="font-size:11px;color:var(--text2);margin-left:4px">(박스${p.boxes||0}+봉지${p.bags||0}→환산)</span>
+              ${p.cans?`<span class="badge bk" style="margin-right:4px">${p.cans}깡통</span>`:''}
+              <strong>${p.totalBoxes}박스</strong>${p.remainBags>0?' +'+p.remainBags+'봉지':''}
+              <span style="font-size:11px;color:var(--text2);margin-left:4px">(박스${p.boxes||0}+봉지${p.bags||0})</span>
             </div>
             <div class="pr-meta">${fmtD(p.date)}${p.memo?' · '+p.memo:''}</div>
           </div>`).join('')}</div>
@@ -921,6 +1096,7 @@ function renderPackList(){
 }
 function refreshPacking(){
   ge('pk-date').value=today();
+  ge('pk-cans').value='';
   ge('pk-convert-box').style.display='none';
   buildPackSel();renderPackList();
 }
@@ -968,17 +1144,68 @@ function refreshNew(){
   if(ge('bc-result')) ge('bc-result').textContent='?박스';
   setupModeUI();
 }
-function saveEntry(){
+
+/* ══ 입력 검증 ══ */
+function validateEntry(){
   const name=ge('n-name').value.trim();
-  if(!name){toast('회차명을 입력해주세요');return;}
+  const type=ge('n-type').value;
+  const adi=isAdi();
+  const errors=[];
+
+  if(!name) errors.push('회차명을 입력해주세요');
+
+  if(type==='출고'){
+    if(adi){
+      const boxes=parseInt(ge('n-adi-boxes').value)||0;
+      if(!boxes) errors.push('출고 박스 수를 입력해주세요');
+    } else {
+      const sacks=parseInt(ge('n-sacks').value)||0;
+      if(!sacks) errors.push('투입 포대 수를 입력해주세요');
+    }
+    // 금액은 미납일 수 있으므로 경고만
+    const amount=adi?parseInt(ge('n-amount-adi').value):parseInt(ge('n-amount-hw').value);
+    if(!amount && ge('n-pay').value==='송금완료'){
+      errors.push('송금완료인데 금액이 0원입니다');
+    }
+  }
+
+  if(type==='2차탄화'){
+    if(!adi){
+      const sacks=parseInt(ge('n-sacks').value)||0;
+      if(!sacks) errors.push('투입 포대 수를 입력해주세요');
+    }
+  }
+
+  // 금액 음수 체크
+  const amountVal=adi?parseInt(ge('n-amount-adi').value):parseInt(ge('n-amount-hw').value);
+  if(amountVal<0) errors.push('금액은 음수일 수 없습니다');
+
+  // 포대 수 음수 체크
+  const sacks=parseInt(ge('n-sacks').value)||0;
+  if(sacks<0) errors.push('포대 수는 음수일 수 없습니다');
+
+  return errors;
+}
+
+function saveEntry(){
+  // 입력 검증
+  const errors=validateEntry();
+  if(errors.length){
+    toast('⚠ '+errors[0]);
+    return;
+  }
+
+  const name=ge('n-name').value.trim();
   const adi=isAdi();
   const nid=DB.g(CL,'nid')||10;
   const E=gE();
+  const meta=getMeta();
   let entry={
     id:nid,name,type:ge('n-type').value,pay:ge('n-pay').value,
     workDate:ge('n-work').value||null,sendDate:ge('n-send').value||null,
-    buyer:ge('n-buyer').value.trim(),dest:ge('n-dest').value.trim(),
-    tax:ge('n-tax').value,mgrMemo:ge('n-mgr').value.trim(),memo:ge('n-memo').value.trim()
+    buyer:meta.buyer||CL,dest:meta.dest||'',
+    tax:ge('n-tax').value,mgrMemo:ge('n-mgr').value.trim(),memo:ge('n-memo').value.trim(),
+    createdAt:new Date().toISOString()
   };
   if(adi){
     entry.adiBoxes=parseInt(ge('n-adi-boxes').value)||null;
@@ -1007,6 +1234,24 @@ function saveEntry(){
   E.push(entry);sE(E);DB.s(CL,'nid',nid+1);
   toast(name+' 등록 완료');
   refreshNew();kpi();
+  autoSwitchClient();
+}
+
+function autoSwitchClient(){
+  if(CL!=='hari') return;
+  const E=gE();
+  if(!E.length) return;
+  const last=E[E.length-1];
+  const wyenEntries=DB.g('wiyen','entries')||[];
+  if(last.pay==='송금완료' && wyenEntries.length===0){
+    setTimeout(()=>{
+      const wyenBtn=document.querySelector('.client-tab:nth-child(3)');
+      if(wyenBtn){
+        toast('하리 완료 — 위옌으로 전환합니다');
+        setTimeout(()=>switchClient('wiyen',wyenBtn),1200);
+      }
+    },600);
+  }
 }
 
 /* ══ 미납관리 ══ */
@@ -1015,18 +1260,37 @@ function refreshUnpaid(){
   const unp=E.filter(e=>e.pay==='미납');
   const uA=unp.reduce((s,e)=>s+(e.amount||0),0);
   const big=E.find(e=>e.type==='미납'&&!e.amount);
+  const now=new Date();
   let ah='';
   if(big) ah+=`<div class="ib ib-r"><strong>미납(미결제)</strong>: ${big.memo||'금액 미확정'}</div>`;
   if(uA) ah+=`<div class="ib ib-a">미납 합계: <strong>${fmtM(uA)}</strong></div>`;
+
+  // 장기 미납 경고
+  const longOverdue=unp.filter(e=>{
+    if(!e.amount||!e.workDate) return false;
+    return Math.floor((now-new Date(e.workDate))/(1000*60*60*24))>30;
+  });
+  if(longOverdue.length){
+    ah+=`<div class="ib ib-r" style="font-weight:500">⚠ 30일 초과 미납 ${longOverdue.length}건 — 조속한 처리 필요</div>`;
+  }
+
   ge('unpaid-alerts').innerHTML=ah;
   const sel=ge('pay-sel');
   sel.innerHTML='<option value="">미납 회차 선택</option>';
   ge('pay-date').value=today();
   ge('unpaid-list').innerHTML=unp.length?unp.map(e=>{
     const tb=totalBoxes(e.boxes,e.bags);
-    return `<div class="card">
+    // 경과일 계산
+    let daysStr='';
+    if(e.workDate){
+      const diff=Math.floor((now-new Date(e.workDate))/(1000*60*60*24));
+      const cls=diff>30?'color:var(--red);font-weight:500':'color:var(--text2)';
+      daysStr=`<div class="row"><span class="k">경과일</span><span class="v" style="${cls}">${diff}일${diff>30?' ⚠':''}</span></div>`;
+    }
+    return `<div class="card" style="${e.workDate&&Math.floor((now-new Date(e.workDate))/(1000*60*60*24))>30?'border-color:var(--red);border-width:2px':''}">
       <div class="row"><span class="k">회차</span><span class="v">${e.name}</span></div>
       <div class="row"><span class="k">작업일</span><span class="v" style="font-family:var(--mono)">${fmtD(e.workDate)}</span></div>
+      ${daysStr}
       ${adi?`<div class="row"><span class="k">출고박스</span><span class="v">${e.adiBoxes!=null?e.adiBoxes+'박스':'미확정'}</span></div>`
            :`<div class="row"><span class="k">투입포대</span><span class="v">${e.sacks!=null?e.sacks+'포대':'미확정'}</span></div>
              <div class="row"><span class="k">선별결과</span><span class="v">${tb>0?fmtBoxBag(e.boxes,e.bags):'미기록'}</span></div>`}
@@ -1072,7 +1336,6 @@ function refreshStats(){
     ge('st-cost').textContent=fmtM(cost);
     ge('st-rev').textContent=fmtM(tA);
     ge('st-margin').textContent=(margin>0?'+':'')+fmtM(margin);
-    // 생산성: 포대→박스
     ge('st-productivity').innerHTML=E.filter(e=>e.sacks&&(e.boxes!=null||e.bags!=null)).map(e=>{
       const tb=totalBoxes(e.boxes,e.bags);
       const rem=remainBags(e.bags);
@@ -1183,18 +1446,24 @@ function saveEdit(){
   const id=parseInt(ge('edit-id').value);if(!id)return;
   const E=gE(),idx=E.findIndex(e=>e.id===id);if(idx<0)return;
   const adi=isAdi();
+
+  // 수정 시 금액 음수 체크
+  const newAmount=parseInt(ge('edit-amount').value)||null;
+  if(newAmount!==null&&newAmount<0){toast('⚠ 금액은 음수일 수 없습니다');return;}
+
   E[idx].name=ge('edit-name').value.trim()||E[idx].name;
   E[idx].type=ge('edit-type').value;
   E[idx].pay=ge('edit-pay').value;
   E[idx].workDate=ge('edit-work').value||null;
   E[idx].sendDate=ge('edit-send').value||null;
-  E[idx].amount=parseInt(ge('edit-amount').value)||null;
+  E[idx].amount=newAmount;
   E[idx].buyer=ge('edit-buyer').value.trim();
   E[idx].dest=ge('edit-dest').value.trim();
   E[idx].tax=ge('edit-tax').value;
   E[idx].grill=parseInt(ge('edit-grill').value)||null;
   E[idx].mgrMemo=ge('edit-mgr').value.trim();
   E[idx].memo=ge('edit-memo').value.trim();
+  E[idx].lastModified=new Date().toISOString();
   if(adi){
     E[idx].adiBoxes=parseInt(ge('edit-adi-boxes').value)||null;
     E[idx].totalKg=parseInt(ge('edit-total-kg').value)||null;
@@ -1233,8 +1502,28 @@ function go(id,btn){
 /* ══ 설정 페이지 ══ */
 function refreshSettings(){
   const labels={hari:'하리',adi:'아디',wiyen:'위옌'};
+  const meta=getMeta();
   ge('settings-client').textContent=labels[CL]||CL;
+  ge('settings-buyer').textContent=meta.buyer||'—';
+  ge('settings-dest').textContent=meta.dest||'—';
+  ge('settings-price').textContent=meta.pricePerSack?'₩'+Number(meta.pricePerSack).toLocaleString()+'/포대':'—';
   ge('settings-count').textContent=gE().length+'건';
+  ge('set-buyer').value=meta.buyer||'';
+  ge('set-dest').value=meta.dest||'';
+  ge('set-price').value=meta.pricePerSack||'';
+  updateBackupInfo();
+}
+function saveClientMeta(){
+  const buyer=ge('set-buyer').value.trim();
+  const dest=ge('set-dest').value.trim();
+  const price=parseInt(ge('set-price').value)||0;
+  const meta=getMeta();
+  meta.buyer=buyer||meta.buyer;
+  meta.dest=dest||meta.dest;
+  if(price) meta.pricePerSack=price;
+  DB.s(CL,'meta',meta);
+  toast('설정 저장 완료');
+  refreshSettings();
 }
 function changePassword(){
   const cur=ge('pw-current').value;
@@ -1282,7 +1571,7 @@ function checkLock(){
 }
 
 /* ══ 초기화 ══ */
-initAll();updateHeader();setupModeUI();refreshLedger();checkLock();
+initAll();updateHeader();setupModeUI();refreshNew();checkLock();
 </script>
 </body>
 </html>
