@@ -589,10 +589,85 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
 
 <script>
 /* ══ DB ══ */
+const SCRIPT_URL='https://script.google.com/macros/s/AKfycbzljWz87D2LZJF3ATsYCD3ZeP6casP174Br59eTbSJMkoo8wmChUMrhTXkw7JUj3PC8/exec';
 const DB={
   g:(cl,k)=>{try{return JSON.parse(localStorage.getItem('cm4_'+cl+'_'+k)||'null')}catch(e){return null}},
   s:(cl,k,v)=>localStorage.setItem('cm4_'+cl+'_'+k,JSON.stringify(v))
 };
+
+/* ── 클라우드 동기화 ── */
+let _syncTimer=null;
+let _syncStatus='idle'; // idle | syncing | error
+
+function syncToCloud(){
+  clearTimeout(_syncTimer);
+  _syncTimer=setTimeout(()=>_doSync(),800);
+}
+
+async function _doSync(){
+  if(_syncStatus==='syncing') return;
+  _syncStatus='syncing';
+  showSyncStatus('저장중...');
+  try{
+    const payload={
+      action:'save',
+      client:CL,
+      entries:gE(),
+      pr:gPR(),
+      meta:getMeta(),
+      nid:DB.g(CL,'nid')||1
+    };
+    const res=await fetch(SCRIPT_URL,{
+      method:'POST',
+      body:JSON.stringify(payload)
+    });
+    const json=await res.json();
+    if(json.ok){
+      _syncStatus='idle';
+      showSyncStatus('✓ 저장됨',2000);
+    } else throw new Error(json.error||'저장 실패');
+  }catch(e){
+    _syncStatus='error';
+    showSyncStatus('⚠ 저장 실패 — 재시도 중...');
+    setTimeout(()=>{_syncStatus='idle';syncToCloud();},5000);
+  }
+}
+
+async function loadFromCloud(){
+  showSyncStatus('불러오는 중...');
+  try{
+    const res=await fetch(SCRIPT_URL+'?t='+Date.now());
+    const json=await res.json();
+    if(!json.ok) throw new Error('로드 실패');
+    ['hari','adi','wiyen'].forEach(cl=>{
+      const d=json[cl];
+      if(!d) return;
+      if(d.entries&&d.entries.length) DB.s(cl,'entries',d.entries);
+      if(d.pr&&Object.keys(d.pr).length) DB.s(cl,'pr',d.pr);
+      if(d.meta&&Object.keys(d.meta).length) DB.s(cl,'meta',d.meta);
+      if(d.nid) DB.s(cl,'nid',d.nid);
+    });
+    showSyncStatus('✓ 최신 데이터 로드됨',2500);
+    updateHeader();setupModeUI();kpi();
+    const pid=document.querySelector('.nav button.on')?.getAttribute('onclick')?.match(/'(\w+)'/)?.[1]||'new';
+    renderPage(pid);
+  }catch(e){
+    showSyncStatus('⚠ 오프라인 — 로컬 데이터 사용중');
+  }
+}
+
+function showSyncStatus(msg,hideAfter){
+  let el=document.getElementById('sync-status');
+  if(!el){
+    el=document.createElement('div');
+    el.id='sync-status';
+    el.style.cssText='position:fixed;bottom:60px;right:16px;background:rgba(26,25,22,0.85);color:#fff;font-size:11px;padding:5px 12px;border-radius:20px;z-index:998;font-family:var(--mono);transition:opacity .3s;pointer-events:none';
+    document.body.appendChild(el);
+  }
+  el.textContent=msg;
+  el.style.opacity='1';
+  if(hideAfter) setTimeout(()=>el.style.opacity='0',hideAfter);
+}
 const fmtM=n=>n?'₩'+Number(n).toLocaleString():'—';
 const fmtD=d=>d?d.slice(2).replace(/-/g,'.'):'—';
 const today=()=>new Date().toISOString().split('T')[0];
@@ -651,9 +726,9 @@ function initAll(){
 }
 
 function gE(){return DB.g(CL,'entries')||[]}
-function sE(a){DB.s(CL,'entries',a)}
+function sE(a){DB.s(CL,'entries',a);syncToCloud();}
 function gPR(){return DB.g(CL,'pr')||{}}
-function sPR(o){DB.s(CL,'pr',o)}
+function sPR(o){DB.s(CL,'pr',o);syncToCloud();}
 function getMeta(){return DB.g(CL,'meta')||INIT[CL]?.meta||{}}
 function isAdi(){return getMeta().mode==='adi'}
 
@@ -1354,6 +1429,7 @@ function saveClientMeta(){
   meta.dest=dest||meta.dest;
   if(price) meta.pricePerSack=price;
   DB.s(CL,'meta',meta);
+  syncToCloud();
   toast('설정 저장 완료');
   refreshSettings();
 }
@@ -1437,6 +1513,22 @@ function generateIcon(){
 /* ══ 초기화 ══ */
 generateIcon();
 initAll();updateHeader();setupModeUI();refreshNew();checkLock();
+// 잠금 해제 후 클라우드 로드
+const _origCheckLock=checkLock;
+function checkLock(){
+  _origCheckLock();
+  if(sessionStorage.getItem('app_unlocked')){
+    setTimeout(()=>loadFromCloud(),300);
+  }
+}
+// tryUnlock 후에도 로드
+const _origTryUnlock=tryUnlock;
+function tryUnlock(){
+  const input=ge('lock-input').value;
+  const stored=localStorage.getItem('app_pw')||'1234';
+  if(input===stored) setTimeout(()=>loadFromCloud(),400);
+  _origTryUnlock();
+}
 </script>
 </body>
 </html>
