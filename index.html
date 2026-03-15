@@ -166,10 +166,6 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--text);color:var(--bg);padding:10px 22px;border-radius:24px;font-size:13px;font-weight:500;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.25)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* 미납 경고 pulse */
-.unpaid-warn{animation:pulse-warn 2s ease-in-out infinite}
-@keyframes pulse-warn{0%,100%{opacity:1}50%{opacity:.5}}
-
 @media(max-width:400px){
   .kpi-bar{grid-template-columns:1fr 1fr}
   .fg{grid-template-columns:1fr}.fg3{grid-template-columns:1fr 1fr}.fg4{grid-template-columns:1fr 1fr}
@@ -218,7 +214,7 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
       <div style="font-size:10px;color:rgba(255,255,255,.4)">송금완료</div>
       <div style="font-family:var(--mono);font-size:13px;font-weight:500;color:#9FE1CB" id="h-paid">—</div>
     </div>
-    <div id="h-unpaid-row" style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
+    <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
       <div style="font-size:10px;color:rgba(255,255,255,.4)">미납</div>
       <div class="unpaid-val" id="h-unpaid">—</div>
     </div>
@@ -490,22 +486,6 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
     <div id="pw-msg" style="font-size:13px;min-height:20px;margin-top:4px;color:var(--green)"></div>
     <button class="btn btn-p" onclick="changePassword()">비밀번호 변경</button>
   </div>
-
-  <div class="sl" style="margin-top:20px">데이터 백업 · 복원</div>
-  <div class="ib ib-r">⚠ 데이터는 이 브라우저에만 저장됩니다. 정기적으로 백업해주세요.<br>캐시 삭제, 기기 변경 시 데이터가 사라집니다.</div>
-  <div class="card">
-    <div style="font-size:13px;color:var(--text2);margin-bottom:10px">
-      <strong>전체 거래처</strong>(하리·아디·위옌) 데이터를 JSON 파일로 백업/복원합니다.
-    </div>
-    <div class="fg" style="margin-bottom:8px">
-      <button class="btn btn-p" onclick="exportBackup()">📦 백업 다운로드</button>
-      <button class="btn btn-o" onclick="ge('import-file').click()">📂 백업 파일 복원</button>
-    </div>
-    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importBackup(event)">
-    <div id="backup-msg" style="font-size:12px;min-height:18px;margin-top:4px;color:var(--green)"></div>
-    <div id="backup-info" style="font-size:11px;color:var(--text3);margin-top:8px;font-family:var(--mono)"></div>
-  </div>
-
   <div class="sl" style="margin-top:20px">거래처 기본값 설정</div>
   <div class="ib ib-b">여기서 설정한 값이 신규 회차 등록 시 자동으로 적용됩니다.</div>
   <div class="card">
@@ -670,99 +650,6 @@ function sPR(o){DB.s(CL,'pr',o)}
 function getMeta(){return DB.g(CL,'meta')||INIT[CL]?.meta||{}}
 function isAdi(){return getMeta().mode==='adi'}
 
-/* ══ 백업/복원 ══ */
-function exportBackup(){
-  const data={};
-  ['hari','adi','wiyen'].forEach(cl=>{
-    data[cl]={
-      entries:DB.g(cl,'entries')||[],
-      pr:DB.g(cl,'pr')||{},
-      nid:DB.g(cl,'nid')||1,
-      meta:DB.g(cl,'meta')||{}
-    };
-  });
-  data._exportDate=new Date().toISOString();
-  data._version='cm4_v1';
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  const d=today().replace(/-/g,'');
-  a.href=url;a.download=`숯물량_백업_${d}.json`;
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  const msg=ge('backup-msg');
-  msg.style.color='var(--green)';
-  msg.textContent='✓ 백업 파일 다운로드 완료 ('+new Date().toLocaleTimeString('ko')+')';
-  updateBackupInfo();
-  setTimeout(()=>msg.textContent='',5000);
-}
-function importBackup(event){
-  const file=event.target.files[0];
-  if(!file) return;
-  const msg=ge('backup-msg');
-  const reader=new FileReader();
-  reader.onload=function(e){
-    try{
-      const data=JSON.parse(e.target.result);
-      if(!data._version||!data.hari){
-        msg.style.color='var(--red)';
-        msg.textContent='✗ 올바른 백업 파일이 아닙니다';
-        return;
-      }
-      // 요약 표시 후 확인
-      let summary='';
-      ['hari','adi','wiyen'].forEach(cl=>{
-        const cnt=(data[cl]?.entries||[]).length;
-        const labels={hari:'하리',adi:'아디',wiyen:'위옌'};
-        if(cnt) summary+=labels[cl]+' '+cnt+'건, ';
-      });
-      summary=summary.replace(/, $/,'');
-      const exportDate=data._exportDate?new Date(data._exportDate).toLocaleString('ko'):'알 수 없음';
-      if(!confirm(`백업 파일을 복원하시겠습니까?\n\n📅 백업일: ${exportDate}\n📦 내용: ${summary}\n\n⚠ 현재 데이터가 모두 덮어씌워집니다.`)){
-        msg.style.color='var(--text2)';
-        msg.textContent='복원 취소됨';
-        event.target.value='';
-        return;
-      }
-      ['hari','adi','wiyen'].forEach(cl=>{
-        if(data[cl]){
-          DB.s(cl,'entries',data[cl].entries||[]);
-          DB.s(cl,'pr',data[cl].pr||{});
-          DB.s(cl,'nid',data[cl].nid||1);
-          DB.s(cl,'meta',data[cl].meta||{});
-        }
-      });
-      msg.style.color='var(--green)';
-      msg.textContent='✓ 복원 완료 — '+summary+' ('+exportDate+' 백업)';
-      toast('데이터 복원 완료');
-      updateBackupInfo();
-      // 현재 페이지 새로고침
-      updateHeader();setupModeUI();kpi();
-      const pid=document.querySelector('.nav button.on')?.getAttribute('onclick')?.match(/'(\w+)'/)?.[1]||'settings';
-      renderPage(pid);
-    }catch(err){
-      msg.style.color='var(--red)';
-      msg.textContent='✗ 파일 읽기 오류: '+err.message;
-    }
-    event.target.value='';
-  };
-  reader.readAsText(file);
-}
-function updateBackupInfo(){
-  const info=ge('backup-info');
-  let total=0;
-  ['hari','adi','wiyen'].forEach(cl=>{
-    total+=(DB.g(cl,'entries')||[]).length;
-  });
-  const size=new Blob([JSON.stringify({
-    hari:{entries:DB.g('hari','entries'),pr:DB.g('hari','pr'),nid:DB.g('hari','nid'),meta:DB.g('hari','meta')},
-    adi:{entries:DB.g('adi','entries'),pr:DB.g('adi','pr'),nid:DB.g('adi','nid'),meta:DB.g('adi','meta')},
-    wiyen:{entries:DB.g('wiyen','entries'),pr:DB.g('wiyen','pr'),nid:DB.g('wiyen','nid'),meta:DB.g('wiyen','meta')}
-  })]).size;
-  const kb=(size/1024).toFixed(1);
-  info.textContent=`현재 데이터: 전체 ${total}건 · 용량 약 ${kb}KB`;
-}
-
 /* ══ 클라이언트 전환 ══ */
 function switchClient(cl,btn){
   CL=cl;
@@ -779,9 +666,6 @@ function updateHeader(){
   const buyer=meta.buyer?` · ${meta.buyer}`:'';
   const now=new Date();
   ge('hdate').textContent=labels[CL]+buyer+' · '+now.getFullYear()+'.'+(now.getMonth()+1).toString().padStart(2,'0')+'.'+now.getDate().toString().padStart(2,'0');
-
-  // 미납 장기 경고 체크
-  checkLongOverdue();
 }
 function setupModeUI(){
   const adi=isAdi();
@@ -797,35 +681,7 @@ function setupModeUI(){
   ge('n-adi-result').style.display=adi?'block':'none';
   ge('st-hw-section').style.display=adi?'none':'block';
   ge('st-adi-section').style.display=adi?'block':'none';
-}
 
-/* ══ 미납 장기 경고 ══ */
-function checkLongOverdue(){
-  const E=gE();
-  const now=new Date();
-  const unpaidRow=ge('h-unpaid-row');
-  const unpaidEl=ge('h-unpaid');
-  let hasLongOverdue=false;
-  let maxDays=0;
-
-  E.forEach(e=>{
-    if(e.pay!=='미납'||!e.amount) return;
-    const ref=e.workDate||e.sendDate;
-    if(!ref) return;
-    const diff=Math.floor((now-new Date(ref))/(1000*60*60*24));
-    if(diff>30){
-      hasLongOverdue=true;
-      maxDays=Math.max(maxDays,diff);
-    }
-  });
-
-  if(hasLongOverdue){
-    unpaidEl.classList.add('unpaid-warn');
-    unpaidEl.title=`최장 ${maxDays}일 경과 미납 건 있음`;
-  } else {
-    unpaidEl.classList.remove('unpaid-warn');
-    unpaidEl.title='';
-  }
 }
 
 /* ══ KPI ══ */
@@ -839,7 +695,12 @@ function kpi(){
   if(adi){
     totalBoxVal=E.reduce((s,e)=>s+(e.adiBoxes||0),0)+'박스';
   } else {
-    const tb=E.reduce((s,e)=>s+totalBoxes(e.boxes,e.bags),0);
+    const PR=gPR();
+    const tb=E.reduce((s,e)=>{
+      const pkRds=PR[e.id]||[];
+      if(pkRds.length>0) return s+pkRds.reduce((ss,p)=>ss+(p.totalBoxes||0),0);
+      return s+totalBoxes(e.boxes,e.bags);
+    },0);
     totalBoxVal=tb+'박스';
   }
   const pA=E.filter(e=>e.pay==='송금완료').reduce((s,e)=>s+(e.amount||0),0);
@@ -849,7 +710,6 @@ function kpi(){
   ge('k-unpaid-cnt').textContent=unp.length+'건';
   ge('h-unpaid').textContent=fmtM(uA);
   if(ge('h-paid')) ge('h-paid').textContent=fmtM(pA);
-  checkLongOverdue();
 }
 
 /* ══ 장부 ══ */
@@ -893,19 +753,20 @@ function refreshLedger(){
         <td class="cell-trunc" title="${e.memo||''}">${ms}</td>
       </tr>`;
     } else {
-      const tb=totalBoxes(e.boxes,e.bags);
-      const rem=remainBags(e.bags);
+      // 분할포장 데이터도 합산 (분할포장이 있으면 PR 합산 우선)
+      const packRounds=PR[e.id]||[];
+      const hasPackData=packRounds.length>0;
+      const packBoxes=hasPackData?packRounds.reduce((s,p)=>s+(p.totalBoxes||0),0):null;
+      const packBagsRem=hasPackData?packRounds.reduce((s,p)=>s+(p.remainBags||0),0)%5:null;
+      const dispBoxes=hasPackData?packBoxes:(e.boxes);
+      const dispBags=hasPackData?packBagsRem:(e.bags);
+      const tb=totalBoxes(dispBoxes,dispBags);
+      const rem=remainBags(dispBags??0);
       const tbStr=tb>0?tb+'박스':'—';
-      const boxStr=e.boxes!=null?e.boxes+'박스':'—';
-      const bagStr=e.bags!=null?(rem>0?rem+'봉지':'0봉지'):'—';
-      // 미납 장기 경고
-      let overdueMark='';
-      if(e.pay==='미납'&&e.amount&&e.workDate){
-        const diff=Math.floor((new Date()-new Date(e.workDate))/(1000*60*60*24));
-        if(diff>30) overdueMark=` <span class="badge br" style="font-size:9px" title="${diff}일 경과">⚠${diff}일</span>`;
-      }
+      const boxStr=dispBoxes!=null?dispBoxes+'박스'+(hasPackData?' (포장합산)':''):'—';
+      const bagStr=dispBags!=null?(rem>0?rem+'봉지':'0봉지'):'—';
       return `<tr class="clickable" onclick="openDrawer(${e.id})">
-        <td><strong>${e.name}</strong>${pb}${overdueMark}</td>
+        <td><strong>${e.name}</strong>${pb}</td>
         <td><span class="badge ${tc[e.type]||'bk'}">${e.type}</span></td>
         <td><span class="badge ${pc[e.pay]||'bk'}">${e.pay}</span></td>
         <td style="font-family:var(--mono)">${fmtD(e.workDate)}</td>
@@ -922,7 +783,11 @@ function refreshLedger(){
   const tA=E.reduce((s,e)=>s+(e.amount||0),0);
   const pA=E.filter(e=>e.pay==='송금완료').reduce((s,e)=>s+(e.amount||0),0);
   const uA=E.filter(e=>e.pay==='미납'&&e.amount).reduce((s,e)=>s+(e.amount||0),0);
-  const tB=adi?E.reduce((s,e)=>s+(e.adiBoxes||0),0):E.reduce((s,e)=>s+totalBoxes(e.boxes,e.bags),0);
+  const tB=adi?E.reduce((s,e)=>s+(e.adiBoxes||0),0):E.reduce((s,e)=>{
+    const pkRds=PR[e.id]||[];
+    if(pkRds.length>0) return s+pkRds.reduce((ss,p)=>ss+(p.totalBoxes||0),0);
+    return s+totalBoxes(e.boxes,e.bags);
+  },0);
   ge('ledger-foot').innerHTML=`<tr>
     <td colspan="${adi?5:5}">합계</td>
     ${adi?`<td class="num">${tB}박스</td><td></td><td></td>`:`<td></td><td></td><td></td><td class="num" style="color:var(--green)">${tB}박스</td>`}
@@ -962,6 +827,7 @@ function pkCalcHW(){
   const cans=parseInt(ge('pk-cans')?.value)||0;
   const sacks=cans?Math.round(cans*2.5):0;
   calcConvert('pk-boxes','pk-bags','pk-convert-box','pk-converted','pk-converted-detail');
+  // 깡통 hint 업데이트
   const hint=ge('pk-cans')?.nextElementSibling;
   if(hint&&cans) hint.textContent=cans+'깡통 = '+sacks+'포대';
   else if(hint) hint.textContent='16깡통=40포대';
@@ -1088,12 +954,42 @@ function renderPackList(){
           </div>`).join('')}</div>
           <div class="pack-totals">
             <span>누적 <strong>${doneBoxes}박스</strong>${doneBagsRem>0?' +'+doneBagsRem+'봉지':''}</span>
-          </div>`
+            <span style="color:var(--text3)">→ 장부 자동반영중</span>
+          </div>
+          <button class="btn btn-g" style="margin-top:10px;background:var(--green-bg);color:var(--green);border:none;padding:9px;font-size:13px;font-weight:500;border-radius:8px;width:100%;cursor:pointer" onclick="confirmPacking(${e.id},${doneBoxes},${doneBagsRem})">
+            ✓ 포장 완료 확정 (장부에 ${doneBoxes}박스${doneBagsRem>0?'+'+doneBagsRem+'봉지':''} 저장)
+          </button>`
         :'<div style="font-size:12px;color:var(--text3);margin-top:6px">포장 기록 없음 — 분할포장 탭에서 추가</div>'}
       </div>`;
     }
   }).join('');
 }
+function confirmPacking(entryId, totalB, remBags){
+  const E=gE();
+  const idx=E.findIndex(e=>e.id===entryId);
+  if(idx<0) return;
+  const e=E[idx];
+  if(!confirm(`${e.name} 포장 완료 확정\n\n박스: ${totalB}박스${remBags>0?' +'+remBags+'봉지':''}\n\n장부에 최종 수량으로 저장합니다.`)) return;
+  // 분할포장 합산값을 entry에 확정 저장
+  const PR=gPR();
+  const packs=PR[entryId]||[];
+  // 박스 합계
+  const confirmedBoxes=packs.reduce((s,p)=>s+(p.boxes||0),0);
+  // 봉지 합계 → 5개 이상이면 추가 박스로 환산
+  const confirmedBags=packs.reduce((s,p)=>s+(p.bags||0),0);
+  const extraBoxes=bagsToBoxes(confirmedBags);
+  const finalBoxes=confirmedBoxes+extraBoxes;
+  const finalBags=remainBags(confirmedBags);
+  E[idx].boxes=finalBoxes;
+  E[idx].bags=finalBags;
+  if(E[idx].type==='2차탄화') E[idx].type='출고';
+  sE(E);
+  toast(e.name+' 포장 완료 확정 — '+finalBoxes+'박스'+(finalBags>0?'+'+finalBags+'봉지':'')+' 장부 저장');
+  renderPackList();
+  refreshLedger();
+  kpi();
+}
+
 function refreshPacking(){
   ge('pk-date').value=today();
   ge('pk-cans').value='';
@@ -1144,58 +1040,9 @@ function refreshNew(){
   if(ge('bc-result')) ge('bc-result').textContent='?박스';
   setupModeUI();
 }
-
-/* ══ 입력 검증 ══ */
-function validateEntry(){
-  const name=ge('n-name').value.trim();
-  const type=ge('n-type').value;
-  const adi=isAdi();
-  const errors=[];
-
-  if(!name) errors.push('회차명을 입력해주세요');
-
-  if(type==='출고'){
-    if(adi){
-      const boxes=parseInt(ge('n-adi-boxes').value)||0;
-      if(!boxes) errors.push('출고 박스 수를 입력해주세요');
-    } else {
-      const sacks=parseInt(ge('n-sacks').value)||0;
-      if(!sacks) errors.push('투입 포대 수를 입력해주세요');
-    }
-    // 금액은 미납일 수 있으므로 경고만
-    const amount=adi?parseInt(ge('n-amount-adi').value):parseInt(ge('n-amount-hw').value);
-    if(!amount && ge('n-pay').value==='송금완료'){
-      errors.push('송금완료인데 금액이 0원입니다');
-    }
-  }
-
-  if(type==='2차탄화'){
-    if(!adi){
-      const sacks=parseInt(ge('n-sacks').value)||0;
-      if(!sacks) errors.push('투입 포대 수를 입력해주세요');
-    }
-  }
-
-  // 금액 음수 체크
-  const amountVal=adi?parseInt(ge('n-amount-adi').value):parseInt(ge('n-amount-hw').value);
-  if(amountVal<0) errors.push('금액은 음수일 수 없습니다');
-
-  // 포대 수 음수 체크
-  const sacks=parseInt(ge('n-sacks').value)||0;
-  if(sacks<0) errors.push('포대 수는 음수일 수 없습니다');
-
-  return errors;
-}
-
 function saveEntry(){
-  // 입력 검증
-  const errors=validateEntry();
-  if(errors.length){
-    toast('⚠ '+errors[0]);
-    return;
-  }
-
   const name=ge('n-name').value.trim();
+  if(!name){toast('회차명을 입력해주세요');return;}
   const adi=isAdi();
   const nid=DB.g(CL,'nid')||10;
   const E=gE();
@@ -1204,8 +1051,7 @@ function saveEntry(){
     id:nid,name,type:ge('n-type').value,pay:ge('n-pay').value,
     workDate:ge('n-work').value||null,sendDate:ge('n-send').value||null,
     buyer:meta.buyer||CL,dest:meta.dest||'',
-    tax:ge('n-tax').value,mgrMemo:ge('n-mgr').value.trim(),memo:ge('n-memo').value.trim(),
-    createdAt:new Date().toISOString()
+    tax:ge('n-tax').value,mgrMemo:ge('n-mgr').value.trim(),memo:ge('n-memo').value.trim()
   };
   if(adi){
     entry.adiBoxes=parseInt(ge('n-adi-boxes').value)||null;
@@ -1234,15 +1080,19 @@ function saveEntry(){
   E.push(entry);sE(E);DB.s(CL,'nid',nid+1);
   toast(name+' 등록 완료');
   refreshNew();kpi();
+  // 하리 완료 후 위옌으로 자동 전환 체크
   autoSwitchClient();
 }
 
 function autoSwitchClient(){
+  // 하리가 현재이고 7회차 이상 or 타입이 완료된 마지막 작업이 위옌으로 넘어가야 할 상황
+  // 판단 기준: 하리의 마지막 회차가 '완료' 상태(송금완료)인 경우 위옌으로 안내
   if(CL!=='hari') return;
   const E=gE();
   if(!E.length) return;
   const last=E[E.length-1];
   const wyenEntries=DB.g('wiyen','entries')||[];
+  // 하리 마지막 작업이 송금완료이고 위옌 데이터가 없으면 위옌으로 자동 전환
   if(last.pay==='송금완료' && wyenEntries.length===0){
     setTimeout(()=>{
       const wyenBtn=document.querySelector('.client-tab:nth-child(3)');
@@ -1260,37 +1110,18 @@ function refreshUnpaid(){
   const unp=E.filter(e=>e.pay==='미납');
   const uA=unp.reduce((s,e)=>s+(e.amount||0),0);
   const big=E.find(e=>e.type==='미납'&&!e.amount);
-  const now=new Date();
   let ah='';
   if(big) ah+=`<div class="ib ib-r"><strong>미납(미결제)</strong>: ${big.memo||'금액 미확정'}</div>`;
   if(uA) ah+=`<div class="ib ib-a">미납 합계: <strong>${fmtM(uA)}</strong></div>`;
-
-  // 장기 미납 경고
-  const longOverdue=unp.filter(e=>{
-    if(!e.amount||!e.workDate) return false;
-    return Math.floor((now-new Date(e.workDate))/(1000*60*60*24))>30;
-  });
-  if(longOverdue.length){
-    ah+=`<div class="ib ib-r" style="font-weight:500">⚠ 30일 초과 미납 ${longOverdue.length}건 — 조속한 처리 필요</div>`;
-  }
-
   ge('unpaid-alerts').innerHTML=ah;
   const sel=ge('pay-sel');
   sel.innerHTML='<option value="">미납 회차 선택</option>';
   ge('pay-date').value=today();
   ge('unpaid-list').innerHTML=unp.length?unp.map(e=>{
     const tb=totalBoxes(e.boxes,e.bags);
-    // 경과일 계산
-    let daysStr='';
-    if(e.workDate){
-      const diff=Math.floor((now-new Date(e.workDate))/(1000*60*60*24));
-      const cls=diff>30?'color:var(--red);font-weight:500':'color:var(--text2)';
-      daysStr=`<div class="row"><span class="k">경과일</span><span class="v" style="${cls}">${diff}일${diff>30?' ⚠':''}</span></div>`;
-    }
-    return `<div class="card" style="${e.workDate&&Math.floor((now-new Date(e.workDate))/(1000*60*60*24))>30?'border-color:var(--red);border-width:2px':''}">
+    return `<div class="card">
       <div class="row"><span class="k">회차</span><span class="v">${e.name}</span></div>
       <div class="row"><span class="k">작업일</span><span class="v" style="font-family:var(--mono)">${fmtD(e.workDate)}</span></div>
-      ${daysStr}
       ${adi?`<div class="row"><span class="k">출고박스</span><span class="v">${e.adiBoxes!=null?e.adiBoxes+'박스':'미확정'}</span></div>`
            :`<div class="row"><span class="k">투입포대</span><span class="v">${e.sacks!=null?e.sacks+'포대':'미확정'}</span></div>
              <div class="row"><span class="k">선별결과</span><span class="v">${tb>0?fmtBoxBag(e.boxes,e.bags):'미기록'}</span></div>`}
@@ -1336,6 +1167,7 @@ function refreshStats(){
     ge('st-cost').textContent=fmtM(cost);
     ge('st-rev').textContent=fmtM(tA);
     ge('st-margin').textContent=(margin>0?'+':'')+fmtM(margin);
+    // 생산성: 포대→박스
     ge('st-productivity').innerHTML=E.filter(e=>e.sacks&&(e.boxes!=null||e.bags!=null)).map(e=>{
       const tb=totalBoxes(e.boxes,e.bags);
       const rem=remainBags(e.bags);
@@ -1446,24 +1278,18 @@ function saveEdit(){
   const id=parseInt(ge('edit-id').value);if(!id)return;
   const E=gE(),idx=E.findIndex(e=>e.id===id);if(idx<0)return;
   const adi=isAdi();
-
-  // 수정 시 금액 음수 체크
-  const newAmount=parseInt(ge('edit-amount').value)||null;
-  if(newAmount!==null&&newAmount<0){toast('⚠ 금액은 음수일 수 없습니다');return;}
-
   E[idx].name=ge('edit-name').value.trim()||E[idx].name;
   E[idx].type=ge('edit-type').value;
   E[idx].pay=ge('edit-pay').value;
   E[idx].workDate=ge('edit-work').value||null;
   E[idx].sendDate=ge('edit-send').value||null;
-  E[idx].amount=newAmount;
+  E[idx].amount=parseInt(ge('edit-amount').value)||null;
   E[idx].buyer=ge('edit-buyer').value.trim();
   E[idx].dest=ge('edit-dest').value.trim();
   E[idx].tax=ge('edit-tax').value;
   E[idx].grill=parseInt(ge('edit-grill').value)||null;
   E[idx].mgrMemo=ge('edit-mgr').value.trim();
   E[idx].memo=ge('edit-memo').value.trim();
-  E[idx].lastModified=new Date().toISOString();
   if(adi){
     E[idx].adiBoxes=parseInt(ge('edit-adi-boxes').value)||null;
     E[idx].totalKg=parseInt(ge('edit-total-kg').value)||null;
@@ -1511,7 +1337,6 @@ function refreshSettings(){
   ge('set-buyer').value=meta.buyer||'';
   ge('set-dest').value=meta.dest||'';
   ge('set-price').value=meta.pricePerSack||'';
-  updateBackupInfo();
 }
 function saveClientMeta(){
   const buyer=ge('set-buyer').value.trim();
