@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>숯 물량 관리</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4F1EC;--surface:#FFFFFF;--surface2:#ECEAE4;--surface3:#E2DFD8;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);
+  --text:#1A1916;--text2:#6B6860;--text3:#A09E9A;
+  --green:#1D6A47;--green-bg:#E2EFE8;
+  --red:#9E2219;--red-bg:#F5E3E2;
+  --blue:#1A4A8A;--blue-bg:#E2ECF8;
+  --amber:#7A4A08;--amber-bg:#F5EBD6;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'Noto Sans KR',sans-serif;
+  --r:10px;--rl:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg)}
+body{font-family:var(--sans);font-size:14px;color:var(--text);background:var(--bg);min-height:100vh}
+
+.top-header{background:var(--text);color:var(--bg);padding:14px 18px 12px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:60}
+.top-header h1{font-size:15px;font-weight:500;letter-spacing:-.3px}
+.hdate{font-size:11px;color:rgba(255,255,255,.42);margin-top:2px;font-family:var(--mono)}
+.unpaid-val{font-family:var(--mono);font-size:14px;font-weight:500;color:#F5A89A}
+
+.client-tabs{display:flex;background:var(--text);border-bottom:1px solid rgba(255,255,255,.1);position:sticky;top:49px;z-index:59}
+.client-tab{flex:1;padding:9px 4px;font-size:12px;font-weight:400;font-family:var(--sans);border:none;background:transparent;color:rgba(255,255,255,.42);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.client-tab.on{color:#fff;font-weight:500;border-bottom:2px solid #fff}
+
+.kpi-bar{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface2);border-bottom:1px solid var(--border);position:sticky;top:90px;z-index:58}
+.kpi-item{padding:9px 12px;border-right:1px solid var(--border)}
+.kpi-item:last-child{border-right:none}
+.kpi-val{font-family:var(--mono);font-size:15px;font-weight:500}
+.kpi-lbl{font-size:10px;color:var(--text3);margin-top:1px}
+.kpi-item.g .kpi-val{color:var(--green)}.kpi-item.r .kpi-val{color:var(--red)}.kpi-item.b .kpi-val{color:var(--blue)}
+
+.nav{display:flex;overflow-x:auto;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:138px;z-index:57;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.nav button{flex:1;min-width:58px;padding:10px 4px;font-size:12px;font-family:var(--sans);font-weight:400;border:none;background:transparent;color:var(--text2);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all .15s}
+.nav button.on{color:var(--text);font-weight:500;border-bottom:2px solid var(--text)}
+
+/* 장부만 full-width, 나머지 모바일 최적화 */
+.main{padding:0;padding-bottom:48px}
+.page{display:none;padding:14px 16px}
+.page.on{display:block}
+#page-ledger{max-width:100%;padding:16px 24px}
+#page-packing,#page-new,#page-unpaid,#page-stats{max-width:640px;margin:0 auto}
+
+.sl{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin:20px 0 8px}
+.sl:first-child{margin-top:0}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:14px 16px;margin-bottom:8px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)}
+.row:last-child{border-bottom:none;padding-bottom:0}
+.row .k{font-size:13px;color:var(--text2)}.row .v{font-size:13px;font-weight:500}
+
+.badge{display:inline-flex;align-items:center;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500}
+.bg{background:var(--green-bg);color:var(--green)}.br{background:var(--red-bg);color:var(--red)}
+.bb{background:var(--blue-bg);color:var(--blue)}.ba{background:var(--amber-bg);color:var(--amber)}
+.bk{background:var(--surface2);color:var(--text2)}
+
+label{display:block;font-size:11px;font-weight:500;color:var(--text2);margin-bottom:5px;letter-spacing:.3px}
+input,select,textarea{width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);outline:none;font-family:var(--sans);transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--text);background:var(--surface)}
+input[readonly]{background:var(--surface2);color:var(--text2);cursor:default}
+.fr{margin-bottom:12px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.fg4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
+.hint{font-size:11px;color:var(--text3);margin-top:4px;font-family:var(--mono)}
+.hint.good{color:var(--green)}
+
+.btn{width:100%;padding:12px;font-size:14px;font-weight:500;border:none;border-radius:var(--r);cursor:pointer;font-family:var(--sans);margin-top:6px;transition:opacity .15s,transform .1s}
+.btn:active{opacity:.85;transform:scale(.99)}
+.btn-p{background:var(--text);color:var(--bg)}
+.btn-o{background:transparent;color:var(--text);border:1px solid var(--border2)}
+.btn-danger{background:var(--red-bg);color:var(--red);border:none}
+
+.ib{padding:11px 14px;border-radius:var(--r);font-size:13px;margin-bottom:12px;line-height:1.65}
+.ib-b{background:var(--blue-bg);color:var(--blue)}.ib-a{background:var(--amber-bg);color:var(--amber)}
+.ib-r{background:var(--red-bg);color:var(--red)}.ib-g{background:var(--green-bg);color:var(--green)}
+
+/* 배치 개념 강조 박스 */
+.batch-concept{background:var(--text);color:var(--bg);border-radius:var(--rl);padding:14px 16px;margin-bottom:12px}
+.batch-concept .bc-title{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:8px}
+.batch-concept .bc-flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.batch-concept .bc-item{background:rgba(255,255,255,.12);border-radius:8px;padding:8px 12px;text-align:center}
+.batch-concept .bc-item .bci-val{font-family:var(--mono);font-size:16px;font-weight:500}
+.batch-concept .bc-item .bci-lbl{font-size:10px;color:rgba(255,255,255,.55);margin-top:2px}
+.batch-concept .bc-arrow{color:rgba(255,255,255,.4);font-size:18px}
+
+/* 봉지→박스 환산 강조 */
+.convert-box{background:var(--green-bg);border:1px solid rgba(29,106,71,.2);border-radius:var(--r);padding:10px 14px;margin-bottom:10px}
+.convert-box .cv-title{font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.convert-result{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.convert-result .cr-main{font-size:20px;font-weight:500;font-family:var(--mono);color:var(--green)}
+.convert-result .cr-detail{font-size:12px;color:var(--green);font-family:var(--mono)}
+
+/* 테이블 */
+.tbl-wrap{overflow-x:auto;border-radius:var(--rl);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:12px;background:var(--surface)}
+thead th{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);text-align:left;padding:10px 14px;border-bottom:1px solid var(--border);white-space:nowrap;background:var(--surface2)}
+tbody td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr.clickable{cursor:pointer}
+tbody tr.clickable:hover td{background:var(--blue-bg)!important}
+tbody tr.selected td{background:var(--blue-bg)!important}
+tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:13px;border-top:1px solid var(--border2)}
+.num{text-align:right;font-family:var(--mono);font-weight:500}
+.money{text-align:right;font-family:var(--mono);font-weight:500;color:var(--green)}
+.unpaid-m{color:var(--red)}
+.cell-trunc{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);font-size:12px}
+
+.sf{padding:12px 0 0;border-top:1px solid var(--border2);margin-top:6px;display:flex;gap:20px;flex-wrap:wrap}
+.sf span{font-size:13px;color:var(--text2)}.sf strong{color:var(--text);font-family:var(--mono)}
+
+/* 분할포장 카드 */
+.pack-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:13px 15px;margin-bottom:8px}
+.pack-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.pack-name{font-size:13px;font-weight:500}
+.pack-sub{font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:2px}
+.progress{height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;margin:6px 0}
+.progress-fill{height:100%;border-radius:3px;transition:width .3s}
+.pack-round{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
+.pack-round:last-child{border-bottom:none}
+.pr-meta{color:var(--text2);font-size:11px;font-family:var(--mono)}
+.pack-totals{font-size:11px;color:var(--text2);display:flex;gap:14px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-family:var(--mono);flex-wrap:wrap}
+.pack-totals strong{color:var(--text)}
+
+/* 탄화 섹션 (아디) */
+.carbonize-section{background:var(--amber-bg);border:1px solid rgba(122,74,8,.2);border-radius:var(--rl);padding:14px 16px;margin-bottom:8px}
+.carbonize-section .sec-title{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--amber);margin-bottom:10px}
+.weight-compare{display:flex;align-items:center;gap:10px;margin:8px 0}
+.weight-box{flex:1;text-align:center;background:var(--surface);border-radius:var(--r);padding:10px 6px}
+.weight-box .wlbl{font-size:10px;color:var(--text3);margin-bottom:4px}
+.weight-box .wval{font-size:16px;font-weight:500;font-family:var(--mono)}
+.weight-box.after .wval{color:var(--red)}
+.weight-arrow{font-size:18px;color:var(--text3);flex-shrink:0}
+.reduction-badge{text-align:center;padding:7px;background:var(--red-bg);border-radius:var(--r);font-family:var(--mono);font-size:13px;font-weight:500;color:var(--red);margin-top:6px}
+.reduction-badge.amber{background:var(--amber-bg);color:var(--amber)}
+
+.stat-unit{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:11px 14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.su-name{font-size:13px;font-weight:500}
+.su-meta{font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:2px}
+.su-price{font-size:15px;font-weight:500;font-family:var(--mono);color:var(--blue)}
+.su-diff{font-size:11px;font-family:var(--mono);text-align:right;margin-top:2px}
+
+.calc-hint{font-size:12px;color:var(--text3);min-height:18px;margin-bottom:6px;font-family:var(--mono)}
+
+/* 수정 드로어 */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;opacity:0;transition:opacity .2s;pointer-events:none}
+.drawer-overlay.on{opacity:1;pointer-events:all}
+.drawer{position:fixed;bottom:0;left:0;right:0;max-height:88vh;background:var(--surface);border-radius:16px 16px 0 0;z-index:201;transform:translateY(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);overflow-y:auto;padding:0 0 32px}
+.drawer.on{transform:translateY(0)}
+.drawer-handle{width:36px;height:4px;background:var(--surface3);border-radius:2px;margin:12px auto 0}
+.drawer-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px 10px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1}
+.drawer-header h3{font-size:15px;font-weight:500}
+.drawer-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2);padding:2px 8px;border-radius:6px;line-height:1}
+.drawer-body{padding:14px 18px}
+.drawer-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 18px;margin-top:6px}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--text);color:var(--bg);padding:10px 22px;border-radius:24px;font-size:13px;font-weight:500;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.25)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(max-width:400px){
+  .kpi-bar{grid-template-columns:1fr 1fr}
+  .fg{grid-template-columns:1fr}.fg3{grid-template-columns:1fr 1fr}.fg4{grid-template-columns:1fr 1fr}
+  .kpi-val{font-size:13px}
+  .batch-concept .bc-flow{gap:4px}
+}
+</style>
+</head>
+<body>
+
+<!-- 잠금 화면 -->
+<div id="lock-screen" style="
+  position:fixed;inset:0;background:#1A1916;z-index:9999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:'Noto Sans KR',sans-serif;padding:24px;
+">
+  <div style="max-width:320px;width:100%;text-align:center">
+    <div style="font-size:28px;margin-bottom:8px">⬛</div>
+    <div style="font-size:18px;font-weight:500;color:#fff;margin-bottom:4px">숯 물량 관리</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:32px">접근 비밀번호를 입력해주세요</div>
+    <input type="password" id="lock-input" placeholder="비밀번호"
+      style="width:100%;padding:13px 16px;font-size:16px;border:1px solid rgba(255,255,255,.15);
+      border-radius:10px;background:rgba(255,255,255,.08);color:#fff;outline:none;
+      font-family:'Noto Sans KR',sans-serif;text-align:center;letter-spacing:4px;margin-bottom:12px"
+      onkeydown="if(event.key==='Enter')tryUnlock()">
+    <button onclick="tryUnlock()" style="
+      width:100%;padding:13px;font-size:15px;font-weight:500;
+      background:#fff;color:#1A1916;border:none;border-radius:10px;
+      cursor:pointer;font-family:'Noto Sans KR',sans-serif">
+      입장하기
+    </button>
+    <div id="lock-error" style="font-size:13px;color:#F5A89A;margin-top:12px;min-height:20px"></div>
+    <div style="font-size:11px;color:rgba(255,255,255,.2);margin-top:24px">
+      비밀번호 변경은 설정에서 가능합니다
+    </div>
+  </div>
+</div>
+
+<div class="top-header">
+  <div><h1>숯 물량 관리</h1><div class="hdate" id="hdate">—</div></div>
+  <div style="text-align:right">
+    <div style="font-size:10px;color:rgba(255,255,255,.4)">미납 잔액</div>
+    <div class="unpaid-val" id="h-unpaid">—</div>
+  </div>
+</div>
+
+<div class="client-tabs">
+  <button class="client-tab on" onclick="switchClient('hari',this)">하리</button>
+  <button class="client-tab" onclick="switchClient('adi',this)">아디</button>
+  <button class="client-tab" onclick="switchClient('wiyen',this)">위옌</button>
+</div>
+
+<div class="kpi-bar">
+  <div class="kpi-item b"><div class="kpi-val" id="k-rounds">—</div><div class="kpi-lbl">총 회차</div></div>
+  <div class="kpi-item g"><div class="kpi-val" id="k-boxes">—</div><div class="kpi-lbl">총 완성 박스</div></div>
+  <div class="kpi-item"><div class="kpi-val" id="k-amount">—</div><div class="kpi-lbl">총 금액</div></div>
+  <div class="kpi-item r"><div class="kpi-val" id="k-unpaid-cnt">—</div><div class="kpi-lbl">미납 건수</div></div>
+</div>
+
+<nav class="nav">
+  <button class="on" onclick="go('ledger',this)">장부</button>
+  <button onclick="go('packing',this)">분할포장</button>
+  <button onclick="go('new',this)">신규입력</button>
+  <button onclick="go('unpaid',this)">미납관리</button>
+  <button onclick="go('stats',this)">통계</button>
+  <button onclick="go('settings',this)">설정</button>
+</nav>
+
+<div class="main">
+
+<!-- ══ 장부 ══ -->
+<div id="page-ledger" class="page on">
+  <div class="sl" style="margin-bottom:12px">전체 회차 장부 <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0"> — 행 클릭 시 수정</span></div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr id="ledger-thead-row"></tr></thead>
+      <tbody id="ledger-body"></tbody>
+      <tfoot id="ledger-foot"></tfoot>
+    </table>
+  </div>
+  <div class="sf" id="ledger-sf"></div>
+</div>
+
+<!-- ══ 분할포장 ══ -->
+<div id="page-packing" class="page">
+  <div class="sl" id="packing-sl">분할 포장 기록</div>
+  <div class="ib ib-b" id="packing-desc"></div>
+  <div class="card">
+    <div class="fg">
+      <div class="fr"><label>회차 선택</label>
+        <select id="pk-sel" onchange="onPackSelect()"><option value="">선택...</option></select>
+      </div>
+      <div class="fr"><label>날짜</label><input type="date" id="pk-date"></div>
+    </div>
+    <div id="pk-status" style="min-height:22px;margin-bottom:8px;font-size:13px"></div>
+
+    <!-- 하리/위옌 -->
+    <div id="pk-hw-fields">
+      <div class="fg">
+        <div class="fr"><label>이번 박스 수</label>
+          <input type="number" id="pk-boxes" min="0" placeholder="예: 10" oninput="pkCalcHW()">
+        </div>
+        <div class="fr"><label>이번 봉지 수</label>
+          <input type="number" id="pk-bags" min="0" max="4" placeholder="0~4" oninput="pkCalcHW()">
+          <div class="hint">5봉지=1박스 자동환산</div>
+        </div>
+      </div>
+      <div id="pk-convert-box" class="convert-box" style="display:none">
+        <div class="cv-title">봉지→박스 환산</div>
+        <div class="convert-result">
+          <span class="cr-main" id="pk-converted">—</span>
+          <span class="cr-detail" id="pk-converted-detail"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 아디 -->
+    <div id="pk-adi-fields" style="display:none">
+      <div class="fg3">
+        <div class="fr"><label>출고 박스 수</label><input type="number" id="pk-adi-boxes" min="1" placeholder="예: 20" oninput="pkCalcAdi()"></div>
+        <div class="fr"><label>박스당 중량(kg)</label><input type="number" id="pk-adi-kg" min="0" step="0.1" placeholder="예: 15" oninput="pkCalcAdi()"></div>
+        <div class="fr"><label>총 중량(kg)</label><input type="number" id="pk-adi-total-kg" readonly></div>
+      </div>
+    </div>
+
+    <div class="calc-hint" id="pk-calc"></div>
+    <div class="fr"><label>메모</label><input type="text" id="pk-memo" placeholder="예: 1차 포장 완료"></div>
+    <button class="btn btn-p" onclick="addPackRound()">추가</button>
+  </div>
+  <div class="sl" id="pack-list-sl">회차별 포장 현황</div>
+  <div id="pack-list"></div>
+</div>
+
+<!-- ══ 신규입력 ══ -->
+<div id="page-new" class="page">
+  <div class="sl">신규 회차 등록</div>
+
+  <!-- 하리/위옌: 배치 개념 설명 -->
+  <div id="batch-concept-box" class="batch-concept">
+    <div class="bc-title">1회 작업 단위</div>
+    <div class="bc-flow">
+      <div class="bc-item"><div class="bci-val">40포대</div><div class="bci-lbl">원물 투입</div></div>
+      <div class="bc-arrow">=</div>
+      <div class="bc-item"><div class="bci-val">16깡통</div><div class="bci-lbl">담기는 분량</div></div>
+      <div class="bc-arrow">→</div>
+      <div class="bc-item"><div class="bci-val">2차탄화</div><div class="bci-lbl">굽기</div></div>
+      <div class="bc-arrow">→</div>
+      <div class="bc-item" style="background:rgba(29,106,71,.3)"><div class="bci-val" id="bc-result">?박스</div><div class="bci-lbl">선별포장 결과</div></div>
+    </div>
+  </div>
+
+  <div class="ib ib-b" id="next-info">다음 회차: —</div>
+  <div class="card">
+    <div class="fg">
+      <div class="fr"><label>회차명</label><input type="text" id="n-name" placeholder="8회차"></div>
+      <div class="fr"><label>구분</label>
+        <select id="n-type" onchange="onTypeChange()">
+          <option value="출고">출고 (선별포장 완료)</option>
+          <option value="2차탄화">2차탄화 (굽기만)</option>
+          <option value="미납">미납</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg">
+      <div class="fr"><label>작업일 (2차탄화일)</label><input type="date" id="n-work"></div>
+      <div class="fr"><label>송금일</label><input type="date" id="n-send"></div>
+    </div>
+    <div class="fg">
+      <div class="fr"><label>결제 상태</label>
+        <select id="n-pay"><option value="미납">미납</option><option value="송금완료">송금완료</option></select>
+      </div>
+      <div class="fr"><label>거래처</label><input type="text" id="n-buyer" placeholder="거래처명"></div>
+    </div>
+    <div class="fg">
+      <div class="fr"><label>출고지</label><input type="text" id="n-dest" placeholder="출고지"></div>
+      <div class="fr"><label>투입 포대 수</label>
+        <input type="number" id="n-sacks" value="40" placeholder="40">
+        <div class="hint">기본 40포대 = 16깡통 = 1회 작업</div>
+      </div>
+    </div>
+
+    <!-- 하리/위옌 선별포장 결과 -->
+    <div id="n-hw-result">
+      <div style="background:var(--surface2);border-radius:var(--r);padding:12px 14px;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">선별포장 결과</div>
+        <div class="fg">
+          <div class="fr"><label>박스 수</label>
+            <input type="number" id="n-boxes" min="0" placeholder="예: 15" oninput="nCalcHW()">
+          </div>
+          <div class="fr"><label>봉지 수 (박스 미만)</label>
+            <input type="number" id="n-bags" min="0" max="4" placeholder="0~4" oninput="nCalcHW()">
+            <div class="hint">5봉지→1박스 자동 환산</div>
+          </div>
+        </div>
+        <div id="n-convert-box" class="convert-box" style="display:none;margin-bottom:0">
+          <div class="cv-title">환산 결과</div>
+          <div class="convert-result">
+            <span class="cr-main" id="n-converted">—</span>
+            <span class="cr-detail" id="n-converted-detail"></span>
+          </div>
+        </div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>금액 (원)</label>
+          <input type="number" id="n-amount-hw" placeholder="직접입력" oninput="nManual=true">
+        </div>
+        <div class="fr"><label>그릴 금액</label><input type="number" id="n-grill-hw" placeholder="0"></div>
+      </div>
+    </div>
+
+    <!-- 아디 -->
+    <div id="n-adi-result" style="display:none">
+      <div class="fg">
+        <div class="fr"><label>출고 박스 수</label><input type="number" id="n-adi-boxes" placeholder="0" oninput="nAdiCalc()"></div>
+        <div class="fr"><label>박스당 중량(kg)</label><input type="number" id="n-adi-kg-per" placeholder="예: 15" step="0.1" oninput="nAdiCalc()"></div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>총 중량(kg, 자동)</label><input type="number" id="n-adi-total-kg" readonly></div>
+        <div class="fr"><label>금액 (원)</label><input type="number" id="n-amount-adi" placeholder="직접입력"></div>
+      </div>
+      <!-- 아디 2차탄화 -->
+      <div id="n-carbonize-section" style="display:none">
+        <div class="carbonize-section">
+          <div class="sec-title">2차탄화 전/후 기록</div>
+          <div class="fg">
+            <div class="fr"><label>투입 박스 수 (탄화 전)</label><input type="number" id="n-before-boxes" placeholder="예: 40" oninput="calcReduction()"></div>
+            <div class="fr"><label>산출 박스 수 (탄화 후)</label><input type="number" id="n-after-boxes" placeholder="예: 28" oninput="calcReduction()"></div>
+          </div>
+          <div class="fg">
+            <div class="fr"><label>탄화 전 중량(kg, 선택)</label><input type="number" id="n-before-kg" placeholder="예: 1000" oninput="calcReduction()"></div>
+            <div class="fr"><label>탄화 후 중량(kg, 선택)</label><input type="number" id="n-after-kg" placeholder="예: 700" oninput="calcReduction()"></div>
+          </div>
+          <div id="reduction-result" style="display:none">
+            <div class="weight-compare">
+              <div class="weight-box"><div class="wlbl">투입</div><div class="wval" id="wr-before">—</div></div>
+              <div class="weight-arrow">→</div>
+              <div class="weight-box after"><div class="wlbl">산출</div><div class="wval" id="wr-after">—</div></div>
+            </div>
+            <div class="reduction-badge" id="wr-rate-boxes">박스 감소율 —%</div>
+            <div class="reduction-badge amber" id="wr-rate-kg" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fg">
+      <div class="fr"><label>부가세</label>
+        <select id="n-tax"><option value="발행전">발행 전</option><option value="발행완료">발행 완료</option></select>
+      </div>
+      <div class="fr"></div>
+    </div>
+    <div class="fr"><label>담당자 메모</label><input type="text" id="n-mgr" placeholder="예: (자금출처)쿠팡 매출+기타"></div>
+    <div class="fr"><label>메모</label><textarea id="n-memo" rows="2" placeholder="특이사항 등"></textarea></div>
+    <button class="btn btn-p" onclick="saveEntry()">회차 등록</button>
+  </div>
+</div>
+
+<!-- ══ 미납관리 ══ -->
+<div id="page-unpaid" class="page">
+  <div class="sl">미납 현황</div>
+  <div id="unpaid-alerts"></div>
+  <div id="unpaid-list"></div>
+  <div class="sl" style="margin-top:20px">송금완료 처리</div>
+  <div class="card">
+    <div class="fg">
+      <div class="fr"><label>회차</label>
+        <select id="pay-sel"><option value="">미납 회차 선택</option></select>
+      </div>
+      <div class="fr"><label>송금일</label><input type="date" id="pay-date"></div>
+    </div>
+    <div class="fr"><label>메모 (선택)</label><input type="text" id="pay-memo" placeholder="송금 메모"></div>
+    <button class="btn btn-p" onclick="markPaid()">송금완료 처리</button>
+  </div>
+</div>
+
+<!-- ══ 통계 ══ -->
+<div id="page-stats" class="page">
+  <div class="sl">결제 현황</div>
+  <div class="card">
+    <div class="row"><span class="k">송금완료</span><span class="v" id="st-paid">—</span></div>
+    <div class="row"><span class="k">미납</span><span class="v" id="st-unpaid" style="color:var(--red)">—</span></div>
+    <div class="row"><span class="k">총 금액</span><span class="v" id="st-total">—</span></div>
+  </div>
+  <div id="st-hw-section">
+    <div class="sl">포대 원가 분석</div>
+    <div class="card">
+      <div class="fg">
+        <div class="fr"><label>포대 단가 (원)</label><input type="number" id="st-price" value="25500" oninput="refreshStats()"></div>
+        <div class="fr"><label>봉지당 판매가 (원, 선택)</label><input type="number" id="st-bag-price" placeholder="예: 5100" oninput="refreshStats()"></div>
+      </div>
+      <div class="row" style="margin-top:6px"><span class="k">총 투입 포대</span><span class="v" id="st-sacks">—</span></div>
+      <div class="row"><span class="k">포대 원가 합계</span><span class="v" id="st-cost">—</span></div>
+      <div class="row"><span class="k">총 매출</span><span class="v" id="st-rev">—</span></div>
+      <div class="row"><span class="k">추정 마진</span><span class="v" id="st-margin" style="color:var(--green)">—</span></div>
+    </div>
+    <div class="sl">회차별 생산성 (포대→박스)</div>
+    <div id="st-productivity"></div>
+  </div>
+  <div id="st-adi-section" style="display:none">
+    <div class="sl">2차탄화 감소율 이력</div>
+    <div id="st-adi-carbonize"></div>
+  </div>
+  <div class="sl">회차별 단가</div>
+  <div id="st-units"></div>
+</div>
+
+<!-- ══ 설정 ══ -->
+<div id="page-settings" class="page">
+  <div class="sl">비밀번호 변경</div>
+  <div class="card">
+    <div class="fr"><label>현재 비밀번호</label><input type="password" id="pw-current" placeholder="현재 비밀번호 입력"></div>
+    <div class="fr"><label>새 비밀번호</label><input type="password" id="pw-new" placeholder="새 비밀번호 (4자리 이상)"></div>
+    <div class="fr"><label>새 비밀번호 확인</label><input type="password" id="pw-confirm" placeholder="한 번 더 입력"></div>
+    <div id="pw-msg" style="font-size:13px;min-height:20px;margin-top:4px;color:var(--green)"></div>
+    <button class="btn btn-p" onclick="changePassword()">비밀번호 변경</button>
+  </div>
+  <div class="sl" style="margin-top:20px">데이터 관리</div>
+  <div class="card">
+    <div class="row"><span class="k">현재 거래처</span><span class="v" id="settings-client">—</span></div>
+    <div class="row"><span class="k">저장된 회차 수</span><span class="v" id="settings-count">—</span></div>
+  </div>
+  <div class="sl">로그아웃</div>
+  <div class="card">
+    <div style="font-size:13px;color:var(--text2);margin-bottom:10px">로그아웃하면 다시 비밀번호를 입력해야 합니다.</div>
+    <button class="btn btn-o" onclick="lockApp()">잠금 (로그아웃)</button>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- 수정 드로어 -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="edit-drawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-header">
+    <h3 id="drawer-title">회차 수정</h3>
+    <button class="drawer-close" onclick="closeDrawer()">×</button>
+  </div>
+  <div class="drawer-body">
+    <input type="hidden" id="edit-id">
+    <div class="fg">
+      <div class="fr"><label>회차명</label><input type="text" id="edit-name"></div>
+      <div class="fr"><label>구분</label>
+        <select id="edit-type">
+          <option value="출고">출고</option><option value="2차탄화">2차탄화</option><option value="미납">미납</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg">
+      <div class="fr"><label>결제 상태</label>
+        <select id="edit-pay"><option value="미납">미납</option><option value="송금완료">송금완료</option></select>
+      </div>
+      <div class="fr"><label>작업일</label><input type="date" id="edit-work"></div>
+    </div>
+    <div class="fg">
+      <div class="fr"><label>송금일</label><input type="date" id="edit-send"></div>
+      <div class="fr"><label>금액 (원)</label><input type="number" id="edit-amount"></div>
+    </div>
+    <!-- 하리/위옌 -->
+    <div id="edit-hw-fields">
+      <div class="fg">
+        <div class="fr"><label>투입 포대 수</label><input type="number" id="edit-sacks" placeholder="40"></div>
+        <div class="fr"><label>박스 수</label><input type="number" id="edit-boxes"></div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>봉지 수 (박스 미만, 0~4)</label>
+          <input type="number" id="edit-bags-num" min="0" max="4" oninput="editCalcHW()">
+        </div>
+        <div class="fr"><label>총 박스 환산 (자동)</label>
+          <input type="number" id="edit-total-boxes" readonly>
+        </div>
+      </div>
+    </div>
+    <!-- 아디 -->
+    <div id="edit-adi-fields" style="display:none">
+      <div class="fg">
+        <div class="fr"><label>출고 박스 수</label><input type="number" id="edit-adi-boxes"></div>
+        <div class="fr"><label>총 중량 (kg)</label><input type="number" id="edit-total-kg"></div>
+      </div>
+    </div>
+    <div class="fg">
+      <div class="fr"><label>거래처</label><input type="text" id="edit-buyer"></div>
+      <div class="fr"><label>출고지</label><input type="text" id="edit-dest"></div>
+    </div>
+    <div class="fg">
+      <div class="fr"><label>부가세</label>
+        <select id="edit-tax"><option value="발행전">발행 전</option><option value="발행완료">발행 완료</option></select>
+      </div>
+      <div class="fr"><label>그릴 금액</label><input type="number" id="edit-grill"></div>
+    </div>
+    <div class="fr"><label>담당자 메모</label><input type="text" id="edit-mgr"></div>
+    <div class="fr"><label>메모</label><textarea id="edit-memo" rows="2"></textarea></div>
+  </div>
+  <div class="drawer-actions">
+    <button class="btn btn-danger" onclick="deleteEntry()">삭제</button>
+    <button class="btn btn-p" onclick="saveEdit()">저장</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══ DB ══ */
+const DB={
+  g:(cl,k)=>{try{return JSON.parse(localStorage.getItem('cm4_'+cl+'_'+k)||'null')}catch(e){return null}},
+  s:(cl,k,v)=>localStorage.setItem('cm4_'+cl+'_'+k,JSON.stringify(v))
+};
+const fmtM=n=>n?'₩'+Number(n).toLocaleString():'—';
+const fmtD=d=>d?d.slice(2).replace(/-/g,'.'):'—';
+const today=()=>new Date().toISOString().split('T')[0];
+
+/* 봉지→박스 환산: 봉지 5개=1박스 */
+function bagsToBoxes(bags){ return Math.floor((bags||0)/5); }
+function remainBags(bags){ return (bags||0)%5; }
+/* 총 박스 환산 (박스 + 봉지÷5) */
+function totalBoxes(boxes,bags){ return (boxes||0)+bagsToBoxes(bags||0); }
+/* 표시용 문자열 */
+function fmtBoxBag(boxes,bags){
+  const b=boxes||0, bg=bags||0;
+  const extra=bagsToBoxes(bg), rem=remainBags(bg);
+  const total=b+extra;
+  if(!b&&!bg) return '—';
+  let s=total+'박스';
+  if(rem>0) s+=' +'+rem+'봉지';
+  if(bg>=5) s+=' (봉지'+bg+'→'+extra+'박스 환산 포함)';
+  return s;
+}
+
+function ge(id){return document.getElementById(id)}
+function toast(msg){const t=ge('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)}
+
+let CL='hari', nManual=false;
+
+/* ══ 초기 데이터 ══ */
+const INIT={
+  hari:{
+    meta:{buyer:'한아',dest:'김포공장',pricePerSack:25500,mode:'hw'},
+    entries:[
+      {id:1,name:'1회차',type:'출고',pay:'송금완료',workDate:'2025-11-09',sendDate:'2025-11-11',sacks:40,boxes:null,bags:null,amount:1020000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'(자금출처)쿠팡 매출+기타',memo:''},
+      {id:2,name:'2회차(소량)',type:'출고',pay:'송금완료',workDate:'2026-02-11',sendDate:null,sacks:12,boxes:null,bags:null,amount:306000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:''},
+      {id:3,name:'3회차(소량)',type:'출고',pay:'송금완료',workDate:'2026-02-18',sendDate:null,sacks:8,boxes:null,bags:null,amount:204000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'11.3 box'},
+      {id:4,name:'4회차(소량)',type:'출고',pay:'송금완료',workDate:'2026-02-22',sendDate:null,sacks:12,boxes:12,bags:1,amount:306000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'미납10포대 더하여 송금함(합계 ₩1,071,000)'},
+      {id:5,name:'미납 분량(결제함)',type:'출고',pay:'송금완료',workDate:null,sendDate:null,sacks:10,boxes:10,bags:0,amount:255000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'미납10포대 더하여 송금함(합계 ₩1,071,000)'},
+      {id:6,name:'미납(미결제 중)',type:'미납',pay:'미납',workDate:null,sendDate:null,sacks:null,boxes:null,bags:null,amount:null,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'대략 400만원 선, 4파렛 분량 추정. 빠른 시일 안에 처리해야 함.'},
+      {id:7,name:'5회차',type:'출고',pay:'미납',workDate:'2026-03-03',sendDate:null,sacks:18,boxes:8,bags:2,amount:459000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'포대원가 25,500원'},
+      {id:8,name:'6회차',type:'출고',pay:'미납',workDate:'2026-03-08',sendDate:null,sacks:40,boxes:null,bags:null,amount:1020000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:''},
+      {id:9,name:'7회차',type:'2차탄화',pay:'미납',workDate:'2026-03-15',sendDate:null,sacks:40,boxes:null,bags:null,amount:1020000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'3/16 2차탄화 완료 — 선별포장 진행중'},
+    ]
+  },
+  adi:{meta:{buyer:'아디',dest:'김포공장',pricePerSack:0,mode:'adi'},entries:[]},
+  wiyen:{meta:{buyer:'위옌',dest:'김포공장',pricePerSack:25500,mode:'hw'},entries:[]}
+};
+
+function initAll(){
+  ['hari','adi','wiyen'].forEach(cl=>{
+    if(!DB.g(cl,'entries')){
+      DB.s(cl,'entries',INIT[cl].entries);
+      DB.s(cl,'pr',{});
+      DB.s(cl,'nid',INIT[cl].entries.length+1);
+      DB.s(cl,'meta',INIT[cl].meta);
+    }
+  });
+}
+
+function gE(){return DB.g(CL,'entries')||[]}
+function sE(a){DB.s(CL,'entries',a)}
+function gPR(){return DB.g(CL,'pr')||{}}
+function sPR(o){DB.s(CL,'pr',o)}
+function getMeta(){return DB.g(CL,'meta')||INIT[CL]?.meta||{}}
+function isAdi(){return getMeta().mode==='adi'}
+
+/* ══ 클라이언트 전환 ══ */
+function switchClient(cl,btn){
+  CL=cl;
+  document.querySelectorAll('.client-tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  updateHeader();
+  setupModeUI();
+  const pid=document.querySelector('.nav button.on')?.getAttribute('onclick')?.match(/'(\w+)'/)?.[1]||'ledger';
+  renderPage(pid);
+}
+function updateHeader(){
+  const labels={hari:'하리 (40ft 컨테이너)',adi:'아디 (40ft 컨테이너)',wiyen:'위옌 (40ft 컨테이너)'};
+  const now=new Date();
+  ge('hdate').textContent=labels[CL]+' · '+now.getFullYear()+'.'+(now.getMonth()+1).toString().padStart(2,'0')+'.'+now.getDate().toString().padStart(2,'0');
+}
+function setupModeUI(){
+  const adi=isAdi();
+  ge('batch-concept-box').style.display=adi?'none':'block';
+  ge('packing-sl').textContent=adi?'분할 출고 기록':'분할 포장 기록';
+  ge('packing-desc').textContent=adi
+    ?'같은 회차 물량을 여러 번에 나눠 출고할 때 사용합니다.'
+    :'40포대(16깡통) 1회 작업을 여러 번에 나눠 선별포장할 때, 포장할 때마다 수량을 누적 기록합니다.';
+  ge('pack-list-sl').textContent=adi?'회차별 출고 현황':'회차별 포장 현황';
+  ge('pk-hw-fields').style.display=adi?'none':'block';
+  ge('pk-adi-fields').style.display=adi?'block':'none';
+  ge('n-hw-result').style.display=adi?'none':'block';
+  ge('n-adi-result').style.display=adi?'block':'none';
+  ge('st-hw-section').style.display=adi?'none':'block';
+  ge('st-adi-section').style.display=adi?'block':'none';
+  const meta=getMeta();
+  ge('n-buyer').value=meta.buyer||'';
+  ge('n-dest').value=meta.dest||'';
+}
+
+/* ══ KPI ══ */
+function kpi(){
+  const E=gE(),adi=isAdi();
+  const rounds=E.filter(e=>/\d+회차/.test(e.name));
+  const tA=E.reduce((s,e)=>s+(e.amount||0),0);
+  const unp=E.filter(e=>e.pay==='미납'&&e.amount);
+  const uA=unp.reduce((s,e)=>s+(e.amount||0),0);
+  let totalBoxVal;
+  if(adi){
+    totalBoxVal=E.reduce((s,e)=>s+(e.adiBoxes||0),0)+'박스';
+  } else {
+    const tb=E.reduce((s,e)=>s+totalBoxes(e.boxes,e.bags),0);
+    totalBoxVal=tb+'박스';
+  }
+  ge('k-rounds').textContent=rounds.length+'회';
+  ge('k-boxes').textContent=totalBoxVal;
+  ge('k-amount').textContent=tA>=1000000?(tA/10000).toFixed(0)+'만원':tA?fmtM(tA):'—';
+  ge('k-unpaid-cnt').textContent=unp.length+'건';
+  ge('h-unpaid').textContent=fmtM(uA);
+}
+
+/* ══ 장부 ══ */
+function refreshLedger(){
+  kpi();
+  const E=gE(),PR=gPR(),adi=isAdi();
+  const tc={출고:'bg','2차탄화':'ba',미납:'br'};
+  const pc={송금완료:'bg',미납:'br'};
+  if(adi){
+    ge('ledger-thead-row').innerHTML=`
+      <th>회차</th><th>구분</th><th>결제</th><th>작업일</th><th>송금일</th>
+      <th style="text-align:right">출고박스</th><th style="text-align:right">중량(kg)</th>
+      <th style="text-align:right">탄화전→후</th><th style="text-align:right">금액</th><th>메모</th>`;
+  } else {
+    ge('ledger-thead-row').innerHTML=`
+      <th>회차</th><th>구분</th><th>결제</th><th>작업일</th><th>송금일</th>
+      <th style="text-align:right">투입포대</th>
+      <th style="text-align:right">박스</th>
+      <th style="text-align:right">봉지(잔여)</th>
+      <th style="text-align:right">총박스환산</th>
+      <th style="text-align:right">금액</th><th>메모</th>`;
+  }
+  ge('ledger-body').innerHTML=E.map(e=>{
+    const packs=PR[e.id]||[];
+    const pb=packs.length?` <span class="badge bb" style="font-size:10px">${packs.length}차</span>`:'';
+    const ms=e.memo?(e.memo.length>40?e.memo.slice(0,40)+'…':e.memo):'—';
+    if(adi){
+      const carb=(e.beforeBoxes&&e.afterBoxes)?
+        `<span style="font-family:var(--mono);font-size:11px">${e.beforeBoxes}→${e.afterBoxes}박스</span>`:
+        e.type==='2차탄화'?'<span class="badge ba">탄화</span>':'—';
+      return `<tr class="clickable" onclick="openDrawer(${e.id})">
+        <td><strong>${e.name}</strong>${pb}</td>
+        <td><span class="badge ${tc[e.type]||'bk'}">${e.type}</span></td>
+        <td><span class="badge ${pc[e.pay]||'bk'}">${e.pay}</span></td>
+        <td style="font-family:var(--mono)">${fmtD(e.workDate)}</td>
+        <td style="font-family:var(--mono)">${fmtD(e.sendDate)}</td>
+        <td class="num">${e.adiBoxes!=null?e.adiBoxes+'박스':'—'}</td>
+        <td class="num">${e.totalKg!=null?e.totalKg+'kg':'—'}</td>
+        <td class="num" style="font-size:11px">${carb}</td>
+        <td class="${e.pay==='미납'?'money unpaid-m':'money'}">${fmtM(e.amount)}</td>
+        <td class="cell-trunc" title="${e.memo||''}">${ms}</td>
+      </tr>`;
+    } else {
+      const tb=totalBoxes(e.boxes,e.bags);
+      const rem=remainBags(e.bags);
+      const tbStr=tb>0?tb+'박스':'—';
+      const boxStr=e.boxes!=null?e.boxes+'박스':'—';
+      const bagStr=e.bags!=null?(rem>0?rem+'봉지':'0봉지'):'—';
+      return `<tr class="clickable" onclick="openDrawer(${e.id})">
+        <td><strong>${e.name}</strong>${pb}</td>
+        <td><span class="badge ${tc[e.type]||'bk'}">${e.type}</span></td>
+        <td><span class="badge ${pc[e.pay]||'bk'}">${e.pay}</span></td>
+        <td style="font-family:var(--mono)">${fmtD(e.workDate)}</td>
+        <td style="font-family:var(--mono)">${fmtD(e.sendDate)}</td>
+        <td class="num">${e.sacks!=null?e.sacks+'포대':'—'}</td>
+        <td class="num">${boxStr}</td>
+        <td class="num">${bagStr}</td>
+        <td class="num" style="color:var(--green);font-weight:500">${tbStr}</td>
+        <td class="${e.pay==='미납'?'money unpaid-m':'money'}">${fmtM(e.amount)}</td>
+        <td class="cell-trunc" title="${e.memo||''}">${ms}</td>
+      </tr>`;
+    }
+  }).join('');
+  const tA=E.reduce((s,e)=>s+(e.amount||0),0);
+  const pA=E.filter(e=>e.pay==='송금완료').reduce((s,e)=>s+(e.amount||0),0);
+  const uA=E.filter(e=>e.pay==='미납'&&e.amount).reduce((s,e)=>s+(e.amount||0),0);
+  const tB=adi?E.reduce((s,e)=>s+(e.adiBoxes||0),0):E.reduce((s,e)=>s+totalBoxes(e.boxes,e.bags),0);
+  ge('ledger-foot').innerHTML=`<tr>
+    <td colspan="${adi?5:5}">합계</td>
+    ${adi?`<td class="num">${tB}박스</td><td></td><td></td>`:`<td></td><td></td><td></td><td class="num" style="color:var(--green)">${tB}박스</td>`}
+    <td class="money">${fmtM(tA)}</td><td></td></tr>`;
+  ge('ledger-sf').innerHTML=`
+    <span>총 <strong>${fmtM(tA)}</strong></span>
+    <span>완료 <strong style="color:var(--green)">${fmtM(pA)}</strong></span>
+    <span>미납 <strong style="color:var(--red)">${fmtM(uA)}</strong></span>
+    <span>총박스 <strong>${tB}박스</strong></span>`;
+}
+
+/* ══ 봉지→박스 환산 UI ══ */
+function calcConvert(boxesId,bagsId,convertBoxId,convertedId,detailId){
+  const boxes=parseInt(ge(boxesId)?.value)||0;
+  const bags=parseInt(ge(bagsId)?.value)||0;
+  if(bags===0&&boxes===0){ge(convertBoxId).style.display='none';return;}
+  const extra=bagsToBoxes(bags);
+  const rem=remainBags(bags);
+  const tot=boxes+extra;
+  if(bags>=5||extra>0){
+    ge(convertBoxId).style.display='block';
+    ge(convertedId).textContent=tot+'박스';
+    ge(detailId).textContent=boxes+'박스 + 봉지'+bags+'개 → '+extra+'박스 환산'+(rem>0?' +'+rem+'봉지 잔여':'');
+    if(ge('bc-result')) ge('bc-result').textContent=tot+'박스';
+  } else {
+    ge(convertBoxId).style.display=bags>0?'block':'none';
+    if(bags>0){
+      ge(convertedId).textContent=tot+'박스 +'+rem+'봉지';
+      ge(detailId).textContent='봉지 5개 모이면 1박스';
+    }
+    if(ge('bc-result')) ge('bc-result').textContent=tot+'박스 +'+bags+'봉지';
+  }
+}
+
+/* ══ 분할포장 ══ */
+function pkCalcHW(){calcConvert('pk-boxes','pk-bags','pk-convert-box','pk-converted','pk-converted-detail');}
+function pkCalcAdi(){
+  const b=parseInt(ge('pk-adi-boxes').value)||0;
+  const k=parseFloat(ge('pk-adi-kg').value)||0;
+  ge('pk-adi-total-kg').value=b&&k?Math.round(b*k):'';
+  ge('pk-calc').textContent=b&&k?`총 중량: ${Math.round(b*k)}kg`:'';
+}
+function buildPackSel(){
+  const E=gE(),PR=gPR(),sel=ge('pk-sel'),cur=sel.value,adi=isAdi();
+  sel.innerHTML='<option value="">선택...</option>';
+  E.forEach(e=>{
+    if(adi&&!e.adiBoxes) return;
+    if(!adi&&e.sacks==null) return;
+    const o=document.createElement('option');
+    o.value=e.id;
+    if(adi){
+      const done=(PR[e.id]||[]).reduce((s,p)=>s+(p.adiBoxes||0),0);
+      o.textContent=e.name+' — 잔여 '+Math.max(0,(e.adiBoxes||0)-done)+'박스';
+    } else {
+      const packs=PR[e.id]||[];
+      const doneBoxes=packs.reduce((s,p)=>s+totalBoxes(p.boxes,p.bags),0);
+      o.textContent=e.name+' ('+packs.length+'차 포장, 누적 '+doneBoxes+'박스)';
+    }
+    sel.appendChild(o);
+  });
+  if(cur) sel.value=cur;
+}
+function onPackSelect(){
+  const id=parseInt(ge('pk-sel').value),adi=isAdi();
+  const el=ge('pk-status');
+  if(!id){el.innerHTML='';return;}
+  const e=gE().find(x=>x.id===id);
+  const packs=gPR()[id]||[];
+  if(adi){
+    const done=packs.reduce((s,p)=>s+(p.adiBoxes||0),0);
+    const rem=Math.max(0,(e.adiBoxes||0)-done);
+    const pct=e.adiBoxes?Math.min(100,Math.round(done/e.adiBoxes*100)):0;
+    el.innerHTML=`<span class="badge ${pct>=100?'bg':'ba'}">${pct}%</span> 총 ${e.adiBoxes}박스 중 ${done}박스 완료 · 잔여 <strong>${rem}박스</strong>`;
+  } else {
+    const doneBoxes=packs.reduce((s,p)=>s+totalBoxes(p.boxes,p.bags),0);
+    const rounds=packs.length;
+    el.innerHTML=`<span class="badge bb">${rounds}차 포장</span> 누적 <strong>${doneBoxes}박스</strong> · 투입포대 ${e.sacks||40}포대`;
+  }
+}
+function addPackRound(){
+  const id=parseInt(ge('pk-sel').value),adi=isAdi();
+  if(!id){toast('회차를 선택해주세요');return;}
+  const PR=gPR();
+  if(!PR[id]) PR[id]=[];
+  const date=ge('pk-date').value||today();
+  const memo=ge('pk-memo').value.trim();
+  if(adi){
+    const boxes=parseInt(ge('pk-adi-boxes').value)||0;
+    const kgPer=parseFloat(ge('pk-adi-kg').value)||0;
+    const totalKg=boxes&&kgPer?Math.round(boxes*kgPer):0;
+    if(!boxes){toast('박스 수를 입력해주세요');return;}
+    const rn=PR[id].length+1;
+    PR[id].push({round:rn,date,adiBoxes:boxes,kgPer,totalKg,memo,ts:Date.now()});
+    sPR(PR);
+    ['pk-adi-boxes','pk-adi-kg','pk-adi-total-kg','pk-memo'].forEach(x=>ge(x).value='');
+    toast(rn+'차 출고 추가 ('+boxes+'박스)');
+  } else {
+    const boxes=parseInt(ge('pk-boxes').value)||0;
+    const bags=parseInt(ge('pk-bags').value)||0;
+    if(!boxes&&!bags){toast('박스 또는 봉지 수를 입력해주세요');return;}
+    const extra=bagsToBoxes(bags);
+    const rem=remainBags(bags);
+    const tb=boxes+extra;
+    const rn=PR[id].length+1;
+    PR[id].push({round:rn,date,boxes,bags,bagsConverted:extra,remainBags:rem,totalBoxes:tb,memo,ts:Date.now()});
+    sPR(PR);
+    ['pk-boxes','pk-bags','pk-memo'].forEach(x=>ge(x).value='');
+    ge('pk-convert-box').style.display='none';
+    toast(rn+'차 포장 추가 ('+tb+'박스'+(rem>0?' +'+rem+'봉지':'')+')');
+  }
+  onPackSelect();renderPackList();refreshLedger();
+}
+function renderPackList(){
+  const E=gE(),PR=gPR(),adi=isAdi();
+  ge('pack-list').innerHTML=E.filter(e=>adi?e.adiBoxes:e.sacks!=null).map(e=>{
+    const packs=PR[e.id]||[];
+    if(adi){
+      const total=e.adiBoxes||0;
+      const done=packs.reduce((s,p)=>s+(p.adiBoxes||0),0);
+      const pct=total?Math.min(100,Math.round(done/total*100)):0;
+      const fc=pct>=100?'var(--green)':pct>0?'#D4A020':'var(--text3)';
+      return `<div class="pack-card">
+        <div class="pack-header">
+          <div><div class="pack-name">${e.name}</div><div class="pack-sub">목표 ${total}박스</div></div>
+          <span class="badge ${pct>=100?'bg':pct>0?'ba':'bk'}">${pct}% · ${done}/${total}박스</span>
+        </div>
+        <div class="progress"><div class="progress-fill" style="width:${pct}%;background:${fc}"></div></div>
+        ${packs.length?`<div style="margin-top:6px">
+          ${packs.map(p=>`<div class="pack-round">
+            <div><span class="badge bb" style="margin-right:6px">${p.round}차</span><strong>${p.adiBoxes}박스</strong>${p.totalKg?' · '+p.totalKg+'kg':''}</div>
+            <div class="pr-meta">${fmtD(p.date)}${p.memo?' · '+p.memo:''}</div>
+          </div>`).join('')}</div>
+          <div class="pack-totals"><span>누적 <strong>${done}박스</strong></span></div>`
+        :'<div style="font-size:12px;color:var(--text3);margin-top:6px">포장 기록 없음</div>'}
+      </div>`;
+    } else {
+      const doneBoxes=packs.reduce((s,p)=>s+(p.totalBoxes||0),0);
+      const doneBagsRem=packs.reduce((s,p)=>s+(p.remainBags||0),0);
+      return `<div class="pack-card">
+        <div class="pack-header">
+          <div><div class="pack-name">${e.name}</div>
+            <div class="pack-sub">투입 ${e.sacks||40}포대(16깡통) · ${packs.length}차 포장</div></div>
+          <span class="badge ${packs.length?'bg':'bk'}">${packs.length}차완료</span>
+        </div>
+        ${packs.length?`<div style="margin-top:6px">
+          ${packs.map(p=>`<div class="pack-round">
+            <div>
+              <span class="badge bb" style="margin-right:6px">${p.round}차</span>
+              <strong>${p.totalBoxes}박스</strong>
+              ${p.remainBags>0?' +'+p.remainBags+'봉지':''}
+              <span style="font-size:11px;color:var(--text2);margin-left:4px">(박스${p.boxes||0}+봉지${p.bags||0}→환산)</span>
+            </div>
+            <div class="pr-meta">${fmtD(p.date)}${p.memo?' · '+p.memo:''}</div>
+          </div>`).join('')}</div>
+          <div class="pack-totals">
+            <span>누적 <strong>${doneBoxes}박스</strong>${doneBagsRem>0?' +'+doneBagsRem+'봉지':''}</span>
+          </div>`
+        :'<div style="font-size:12px;color:var(--text3);margin-top:6px">포장 기록 없음 — 분할포장 탭에서 추가</div>'}
+      </div>`;
+    }
+  }).join('');
+}
+function refreshPacking(){
+  ge('pk-date').value=today();
+  ge('pk-convert-box').style.display='none';
+  buildPackSel();renderPackList();
+}
+
+/* ══ 신규입력 ══ */
+function nCalcHW(){calcConvert('n-boxes','n-bags','n-convert-box','n-converted','n-converted-detail');}
+function nAdiCalc(){
+  const b=parseInt(ge('n-adi-boxes').value)||0;
+  const k=parseFloat(ge('n-adi-kg-per').value)||0;
+  ge('n-adi-total-kg').value=b&&k?Math.round(b*k):'';
+}
+function onTypeChange(){
+  const type=ge('n-type').value,adi=isAdi();
+  ge('n-carbonize-section').style.display=(adi&&type==='2차탄화')?'block':'none';
+}
+function calcReduction(){
+  const bB=parseInt(ge('n-before-boxes').value)||0;
+  const aB=parseInt(ge('n-after-boxes').value)||0;
+  const bK=parseFloat(ge('n-before-kg').value)||0;
+  const aK=parseFloat(ge('n-after-kg').value)||0;
+  if(bB>0&&aB>0){
+    ge('reduction-result').style.display='block';
+    const rate=((bB-aB)/bB*100).toFixed(1);
+    ge('wr-before').textContent=bB+'박스'+(bK?' / '+bK.toLocaleString()+'kg':'');
+    ge('wr-after').textContent=aB+'박스'+(aK?' / '+aK.toLocaleString()+'kg':'');
+    ge('wr-rate-boxes').textContent=`${bB}박스 → ${aB}박스 · 감소율 ${rate}% (${bB-aB}박스 감소)`;
+    if(bK>0&&aK>0){
+      const kr=((bK-aK)/bK*100).toFixed(1);
+      ge('wr-rate-kg').textContent=`중량 ${bK.toLocaleString()}kg → ${aK.toLocaleString()}kg · ${kr}% 감소`;
+      ge('wr-rate-kg').style.display='block';
+    } else ge('wr-rate-kg').style.display='none';
+  } else ge('reduction-result').style.display='none';
+}
+function refreshNew(){
+  const rounds=gE().filter(e=>/\d+회차/.test(e.name));
+  ge('next-info').textContent='다음 회차: '+(rounds.length+1)+'회차';
+  ge('n-name').value=(rounds.length+1)+'회차';
+  ge('n-work').value=today();
+  ge('n-sacks').value='40';
+  nManual=false;
+  ['n-boxes','n-bags','n-amount-hw','n-grill-hw','n-adi-boxes','n-adi-kg-per','n-adi-total-kg','n-amount-adi','n-before-boxes','n-after-boxes','n-before-kg','n-after-kg','n-mgr','n-memo','n-send'].forEach(id=>{if(ge(id))ge(id).value='';});
+  ge('n-convert-box').style.display='none';
+  ge('reduction-result').style.display='none';
+  ge('n-carbonize-section').style.display='none';
+  if(ge('bc-result')) ge('bc-result').textContent='?박스';
+  setupModeUI();
+}
+function saveEntry(){
+  const name=ge('n-name').value.trim();
+  if(!name){toast('회차명을 입력해주세요');return;}
+  const adi=isAdi();
+  const nid=DB.g(CL,'nid')||10;
+  const E=gE();
+  let entry={
+    id:nid,name,type:ge('n-type').value,pay:ge('n-pay').value,
+    workDate:ge('n-work').value||null,sendDate:ge('n-send').value||null,
+    buyer:ge('n-buyer').value.trim(),dest:ge('n-dest').value.trim(),
+    tax:ge('n-tax').value,mgrMemo:ge('n-mgr').value.trim(),memo:ge('n-memo').value.trim()
+  };
+  if(adi){
+    entry.adiBoxes=parseInt(ge('n-adi-boxes').value)||null;
+    entry.kgPer=parseFloat(ge('n-adi-kg-per').value)||null;
+    entry.totalKg=parseInt(ge('n-adi-total-kg').value)||null;
+    entry.amount=parseInt(ge('n-amount-adi').value)||null;
+    if(ge('n-type').value==='2차탄화'){
+      entry.beforeBoxes=parseInt(ge('n-before-boxes').value)||null;
+      entry.afterBoxes=parseInt(ge('n-after-boxes').value)||null;
+      entry.beforeKg=parseFloat(ge('n-before-kg').value)||null;
+      entry.afterKg=parseFloat(ge('n-after-kg').value)||null;
+      if(entry.beforeBoxes&&entry.afterBoxes)
+        entry.boxReductionRate=parseFloat(((entry.beforeBoxes-entry.afterBoxes)/entry.beforeBoxes*100).toFixed(1));
+      if(entry.beforeKg&&entry.afterKg)
+        entry.kgReductionRate=parseFloat(((entry.beforeKg-entry.afterKg)/entry.beforeKg*100).toFixed(1));
+    }
+  } else {
+    const boxes=parseInt(ge('n-boxes').value)||null;
+    const bags=parseInt(ge('n-bags').value)||null;
+    entry.sacks=parseInt(ge('n-sacks').value)||40;
+    entry.boxes=boxes;
+    entry.bags=bags;
+    entry.amount=parseInt(ge('n-amount-hw').value)||null;
+    entry.grill=parseInt(ge('n-grill-hw').value)||null;
+  }
+  E.push(entry);sE(E);DB.s(CL,'nid',nid+1);
+  toast(name+' 등록 완료');
+  refreshNew();kpi();
+}
+
+/* ══ 미납관리 ══ */
+function refreshUnpaid(){
+  const E=gE(),adi=isAdi();
+  const unp=E.filter(e=>e.pay==='미납');
+  const uA=unp.reduce((s,e)=>s+(e.amount||0),0);
+  const big=E.find(e=>e.type==='미납'&&!e.amount);
+  let ah='';
+  if(big) ah+=`<div class="ib ib-r"><strong>미납(미결제)</strong>: ${big.memo||'금액 미확정'}</div>`;
+  if(uA) ah+=`<div class="ib ib-a">미납 합계: <strong>${fmtM(uA)}</strong></div>`;
+  ge('unpaid-alerts').innerHTML=ah;
+  const sel=ge('pay-sel');
+  sel.innerHTML='<option value="">미납 회차 선택</option>';
+  ge('pay-date').value=today();
+  ge('unpaid-list').innerHTML=unp.length?unp.map(e=>{
+    const tb=totalBoxes(e.boxes,e.bags);
+    return `<div class="card">
+      <div class="row"><span class="k">회차</span><span class="v">${e.name}</span></div>
+      <div class="row"><span class="k">작업일</span><span class="v" style="font-family:var(--mono)">${fmtD(e.workDate)}</span></div>
+      ${adi?`<div class="row"><span class="k">출고박스</span><span class="v">${e.adiBoxes!=null?e.adiBoxes+'박스':'미확정'}</span></div>`
+           :`<div class="row"><span class="k">투입포대</span><span class="v">${e.sacks!=null?e.sacks+'포대':'미확정'}</span></div>
+             <div class="row"><span class="k">선별결과</span><span class="v">${tb>0?fmtBoxBag(e.boxes,e.bags):'미기록'}</span></div>`}
+      <div class="row"><span class="k">금액</span><span class="v" style="color:var(--red);font-family:var(--mono)">${fmtM(e.amount)}</span></div>
+      ${e.memo?`<div class="row"><span class="k">메모</span><span class="v" style="font-size:12px">${e.memo}</span></div>`:''}
+    </div>`;
+  }).join(''):'<div class="ib ib-g">미납 건 없음</div>';
+  unp.filter(e=>e.amount).forEach(e=>{
+    const o=document.createElement('option');
+    o.value=e.id;o.textContent=e.name+' ('+fmtM(e.amount)+')';
+    sel.appendChild(o);
+  });
+}
+function markPaid(){
+  const id=parseInt(ge('pay-sel').value);
+  const date=ge('pay-date').value;
+  const memo=ge('pay-memo').value.trim();
+  if(!id){toast('회차를 선택해주세요');return;}
+  const E=gE(),idx=E.findIndex(e=>e.id===id);
+  if(idx>=0){
+    E[idx].pay='송금완료';E[idx].sendDate=date||today();
+    if(memo) E[idx].mgrMemo=(E[idx].mgrMemo?E[idx].mgrMemo+' / ':'')+memo;
+    sE(E);toast(E[idx].name+' 송금완료 처리');
+    refreshUnpaid();kpi();
+  }
+}
+
+/* ══ 통계 ══ */
+function refreshStats(){
+  const E=gE(),adi=isAdi();
+  const pA=E.filter(e=>e.pay==='송금완료').reduce((s,e)=>s+(e.amount||0),0);
+  const uA=E.filter(e=>e.pay==='미납'&&e.amount).reduce((s,e)=>s+(e.amount||0),0);
+  const tA=E.reduce((s,e)=>s+(e.amount||0),0);
+  ge('st-paid').textContent=fmtM(pA);
+  ge('st-unpaid').textContent=fmtM(uA);
+  ge('st-total').textContent=fmtM(tA);
+  if(!adi){
+    const price=parseInt(ge('st-price').value)||25500;
+    const tS=E.reduce((s,e)=>s+(e.sacks||0),0);
+    const cost=tS*price;
+    const margin=tA-cost;
+    ge('st-sacks').textContent=tS+'포대';
+    ge('st-cost').textContent=fmtM(cost);
+    ge('st-rev').textContent=fmtM(tA);
+    ge('st-margin').textContent=(margin>0?'+':'')+fmtM(margin);
+    // 생산성: 포대→박스
+    ge('st-productivity').innerHTML=E.filter(e=>e.sacks&&(e.boxes!=null||e.bags!=null)).map(e=>{
+      const tb=totalBoxes(e.boxes,e.bags);
+      const rem=remainBags(e.bags);
+      const ratio=e.sacks?((tb+(rem/5))/e.sacks).toFixed(2):0;
+      return `<div class="stat-unit">
+        <div><div class="su-name">${e.name}</div>
+          <div class="su-meta">${fmtD(e.workDate)} · 투입 ${e.sacks}포대</div></div>
+        <div style="text-align:right">
+          <div style="font-size:15px;font-weight:500;font-family:var(--mono);color:var(--blue)">${tb}박스${rem>0?' +'+rem+'봉지':''}</div>
+          <div style="font-size:11px;font-family:var(--mono);color:var(--text2)">포대당 ${ratio}박스</div>
+        </div>
+      </div>`;
+    }).join('')||'<div class="ib ib-b">선별포장 완료 데이터 없음</div>';
+  } else {
+    const carbonizes=E.filter(e=>e.type==='2차탄화'&&(e.beforeBoxes||e.beforeKg));
+    ge('st-adi-carbonize').innerHTML=carbonizes.length?carbonizes.map(e=>`
+      <div class="carbonize-section" style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <strong style="font-size:13px">${e.name}</strong>
+          <span class="badge ba" style="font-family:var(--mono)">${fmtD(e.workDate)}</span>
+        </div>
+        ${e.beforeBoxes&&e.afterBoxes?`
+        <div class="weight-compare">
+          <div class="weight-box"><div class="wlbl">투입</div><div class="wval">${e.beforeBoxes}박스</div></div>
+          <div class="weight-arrow">→</div>
+          <div class="weight-box after"><div class="wlbl">산출</div><div class="wval">${e.afterBoxes}박스</div></div>
+        </div>
+        <div class="reduction-badge">${e.beforeBoxes}→${e.afterBoxes}박스 · 감소율 ${e.boxReductionRate}%</div>`:''}
+        ${e.beforeKg&&e.afterKg?`<div class="reduction-badge amber" style="margin-top:4px">중량 ${e.beforeKg.toLocaleString()}→${e.afterKg.toLocaleString()}kg · ${e.kgReductionRate}% 감소</div>`:''}
+      </div>`).join(''):'<div class="ib ib-b">2차탄화 기록 없음</div>';
+  }
+  ge('st-units').innerHTML=E.filter(e=>e.amount&&(adi?e.adiBoxes:(e.sacks||e.boxes!=null))).map(e=>{
+    if(adi){
+      const u=e.adiBoxes?Math.round(e.amount/e.adiBoxes):0;
+      return `<div class="stat-unit">
+        <div><div class="su-name">${e.name}</div><div class="su-meta">${fmtD(e.workDate)} · ${e.adiBoxes||0}박스</div></div>
+        <div style="text-align:right"><div class="su-price">${fmtM(u)}/박스</div><div class="su-diff" style="color:var(--blue)">${fmtM(e.amount)}</div></div>
+      </div>`;
+    } else {
+      const price=parseInt(ge('st-price').value)||25500;
+      const tb=totalBoxes(e.boxes,e.bags);
+      const s=e.sacks||0;
+      const uPerSack=s?Math.round(e.amount/s):0;
+      const uPerBox=tb?Math.round(e.amount/tb):0;
+      const diff=uPerSack-price;
+      return `<div class="stat-unit">
+        <div><div class="su-name">${e.name}</div>
+          <div class="su-meta">${fmtD(e.workDate)} · ${s}포대 → ${tb}박스</div></div>
+        <div style="text-align:right">
+          <div class="su-price">${fmtM(uPerSack)}/포대</div>
+          <div class="su-diff" style="color:${diff>=0?'var(--green)':'var(--red)'}">${diff>=0?'+':''}${fmtM(diff)} · 박스당 ${fmtM(uPerBox)}</div>
+        </div>
+      </div>`;
+    }
+  }).join('');
+}
+
+/* ══ 수정 드로어 ══ */
+function editCalcHW(){
+  const bags=parseInt(ge('edit-bags-num').value)||0;
+  const boxes=parseInt(ge('edit-boxes').value)||0;
+  ge('edit-total-boxes').value=totalBoxes(boxes,bags)||'';
+}
+function openDrawer(id){
+  const e=gE().find(x=>x.id===id);
+  if(!e) return;
+  const adi=isAdi();
+  ge('edit-id').value=id;
+  ge('drawer-title').textContent=e.name+' 수정';
+  ge('edit-name').value=e.name||'';
+  ge('edit-type').value=e.type||'출고';
+  ge('edit-pay').value=e.pay||'미납';
+  ge('edit-work').value=e.workDate||'';
+  ge('edit-send').value=e.sendDate||'';
+  ge('edit-amount').value=e.amount||'';
+  ge('edit-buyer').value=e.buyer||'';
+  ge('edit-dest').value=e.dest||'';
+  ge('edit-tax').value=e.tax||'발행전';
+  ge('edit-grill').value=e.grill||'';
+  ge('edit-mgr').value=e.mgrMemo||'';
+  ge('edit-memo').value=e.memo||'';
+  if(adi){
+    ge('edit-hw-fields').style.display='none';
+    ge('edit-adi-fields').style.display='block';
+    ge('edit-adi-boxes').value=e.adiBoxes||'';
+    ge('edit-total-kg').value=e.totalKg||'';
+  } else {
+    ge('edit-hw-fields').style.display='block';
+    ge('edit-adi-fields').style.display='none';
+    ge('edit-sacks').value=e.sacks||'';
+    ge('edit-boxes').value=e.boxes||'';
+    ge('edit-bags-num').value=e.bags||'';
+    ge('edit-total-boxes').value=totalBoxes(e.boxes,e.bags)||'';
+  }
+  document.querySelectorAll('tbody tr').forEach(r=>r.classList.remove('selected'));
+  document.querySelectorAll('tbody tr').forEach(r=>{
+    if(r.getAttribute('onclick')===`openDrawer(${id})`) r.classList.add('selected');
+  });
+  ge('drawer-overlay').classList.add('on');
+  ge('edit-drawer').classList.add('on');
+}
+function closeDrawer(){
+  ge('drawer-overlay').classList.remove('on');
+  ge('edit-drawer').classList.remove('on');
+  document.querySelectorAll('tbody tr').forEach(r=>r.classList.remove('selected'));
+}
+function saveEdit(){
+  const id=parseInt(ge('edit-id').value);if(!id)return;
+  const E=gE(),idx=E.findIndex(e=>e.id===id);if(idx<0)return;
+  const adi=isAdi();
+  E[idx].name=ge('edit-name').value.trim()||E[idx].name;
+  E[idx].type=ge('edit-type').value;
+  E[idx].pay=ge('edit-pay').value;
+  E[idx].workDate=ge('edit-work').value||null;
+  E[idx].sendDate=ge('edit-send').value||null;
+  E[idx].amount=parseInt(ge('edit-amount').value)||null;
+  E[idx].buyer=ge('edit-buyer').value.trim();
+  E[idx].dest=ge('edit-dest').value.trim();
+  E[idx].tax=ge('edit-tax').value;
+  E[idx].grill=parseInt(ge('edit-grill').value)||null;
+  E[idx].mgrMemo=ge('edit-mgr').value.trim();
+  E[idx].memo=ge('edit-memo').value.trim();
+  if(adi){
+    E[idx].adiBoxes=parseInt(ge('edit-adi-boxes').value)||null;
+    E[idx].totalKg=parseInt(ge('edit-total-kg').value)||null;
+  } else {
+    E[idx].sacks=parseInt(ge('edit-sacks').value)||null;
+    const boxes=parseInt(ge('edit-boxes').value)||null;
+    const bags=parseInt(ge('edit-bags-num').value)||null;
+    E[idx].boxes=boxes;E[idx].bags=bags;
+  }
+  sE(E);closeDrawer();
+  toast(E[idx].name+' 수정 완료');
+  refreshLedger();
+}
+function deleteEntry(){
+  const id=parseInt(ge('edit-id').value);if(!id)return;
+  const E=gE(),e=E.find(x=>x.id===id);
+  if(!confirm(e.name+' 을(를) 삭제할까요?')) return;
+  sE(E.filter(x=>x.id!==id));
+  const PR=gPR();delete PR[id];sPR(PR);
+  closeDrawer();toast(e.name+' 삭제 완료');
+  refreshLedger();
+}
+
+/* ══ 내비게이션 ══ */
+function renderPage(id){
+  ({ledger:refreshLedger,packing:refreshPacking,new:refreshNew,unpaid:refreshUnpaid,stats:refreshStats})[id]?.();
+}
+function go(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('on'));
+  ge('page-'+id).classList.add('on');btn.classList.add('on');
+  renderPage(id);
+}
+
+/* ══ 설정 페이지 ══ */
+function refreshSettings(){
+  const labels={hari:'하리',adi:'아디',wiyen:'위옌'};
+  ge('settings-client').textContent=labels[CL]||CL;
+  ge('settings-count').textContent=gE().length+'건';
+}
+function changePassword(){
+  const cur=ge('pw-current').value;
+  const nw=ge('pw-new').value;
+  const cf=ge('pw-confirm').value;
+  const msg=ge('pw-msg');
+  const stored=localStorage.getItem('app_pw')||'1234';
+  if(cur!==stored){msg.style.color='var(--red)';msg.textContent='현재 비밀번호가 틀렸습니다';return;}
+  if(nw.length<4){msg.style.color='var(--red)';msg.textContent='4자리 이상 입력해주세요';return;}
+  if(nw!==cf){msg.style.color='var(--red)';msg.textContent='새 비밀번호가 일치하지 않습니다';return;}
+  localStorage.setItem('app_pw',nw);
+  msg.style.color='var(--green)';msg.textContent='비밀번호가 변경됐습니다';
+  ge('pw-current').value='';ge('pw-new').value='';ge('pw-confirm').value='';
+  setTimeout(()=>msg.textContent='',3000);
+}
+function lockApp(){
+  sessionStorage.removeItem('app_unlocked');
+  location.reload();
+}
+
+/* ══ 잠금 ══ */
+function tryUnlock(){
+  const input=ge('lock-input').value;
+  const stored=localStorage.getItem('app_pw')||'1234';
+  if(input===stored){
+    sessionStorage.setItem('app_unlocked','1');
+    ge('lock-screen').style.display='none';
+  } else {
+    ge('lock-error').textContent='비밀번호가 틀렸습니다';
+    ge('lock-input').value='';
+    ge('lock-input').style.borderColor='rgba(245,168,154,.6)';
+    setTimeout(()=>{
+      ge('lock-error').textContent='';
+      ge('lock-input').style.borderColor='rgba(255,255,255,.15)';
+    },2000);
+  }
+}
+function checkLock(){
+  if(!sessionStorage.getItem('app_unlocked')){
+    ge('lock-screen').style.display='flex';
+    setTimeout(()=>ge('lock-input').focus(),100);
+  } else {
+    ge('lock-screen').style.display='none';
+  }
+}
+
+/* ══ 초기화 ══ */
+// renderPage에 settings 추가
+const _origRenderPage=renderPage;
+function renderPage(id){
+  if(id==='settings'){refreshSettings();return;}
+  _origRenderPage(id);
+}
+
+initAll();updateHeader();setupModeUI();refreshLedger();checkLock();
+</script>
+</body>
+</html>
