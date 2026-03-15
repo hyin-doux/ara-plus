@@ -598,8 +598,10 @@ const DB={
 /* ── 클라우드 동기화 ── */
 let _syncTimer=null;
 let _syncStatus='idle'; // idle | syncing | error
+let _syncReady=false; // 초기화 완료 전까지 동기화 비활성
 
 function syncToCloud(){
+  if(!_syncReady) return;
   clearTimeout(_syncTimer);
   _syncTimer=setTimeout(()=>_doSync(),800);
 }
@@ -1459,6 +1461,7 @@ function tryUnlock(){
   if(input===stored){
     sessionStorage.setItem('app_unlocked','1');
     ge('lock-screen').style.display='none';
+    setTimeout(()=>loadFromCloud(),400);
   } else {
     ge('lock-error').textContent='비밀번호가 틀렸습니다';
     ge('lock-input').value='';
@@ -1475,6 +1478,12 @@ function checkLock(){
     setTimeout(()=>ge('lock-input').focus(),100);
   } else {
     ge('lock-screen').style.display='none';
+  }
+}
+function checkLockAndLoad(){
+  checkLock();
+  if(sessionStorage.getItem('app_unlocked')){
+    setTimeout(()=>loadFromCloud(),400);
   }
 }
 
@@ -1512,23 +1521,7 @@ function generateIcon(){
 
 /* ══ 초기화 ══ */
 generateIcon();
-initAll();updateHeader();setupModeUI();refreshNew();checkLock();
-// 잠금 해제 후 클라우드 로드
-const _origCheckLock=checkLock;
-function checkLock(){
-  _origCheckLock();
-  if(sessionStorage.getItem('app_unlocked')){
-    setTimeout(()=>loadFromCloud(),300);
-  }
-}
-// tryUnlock 후에도 로드
-const _origTryUnlock=tryUnlock;
-function tryUnlock(){
-  const input=ge('lock-input').value;
-  const stored=localStorage.getItem('app_pw')||'1234';
-  if(input===stored) setTimeout(()=>loadFromCloud(),400);
-  _origTryUnlock();
-}
+initAll();_syncReady=true;updateHeader();setupModeUI();refreshNew();checkLockAndLoad();
 </script>
 </body>
 </html>
