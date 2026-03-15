@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>숯 물량 관리</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="숯 관리">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#E8650A">
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiB2aWV3Qm94PSIwIDAgMTkyIDE5MiI+CiAgPHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIHJ4PSI0MCIgZmlsbD0iI0U4NjUwQSIvPgogIDx0ZXh0IHg9Ijk2IiB5PSIxMTgiIGZvbnQtZmFtaWx5PSJzZXJpZiIgZm9udC13ZWlnaHQ9IjkwMCIgZm9udC1zaXplPSI4OCIgZmlsbD0iIzFBMTkxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgbGV0dGVyLXNwYWNpbmc9Ii0yIj7siK88L3RleHQ+Cjwvc3ZnPg==">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiB2aWV3Qm94PSIwIDAgMTkyIDE5MiI+CiAgPHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIHJ4PSI0MCIgZmlsbD0iI0U4NjUwQSIvPgogIDx0ZXh0IHg9Ijk2IiB5PSIxMTgiIGZvbnQtZmFtaWx5PSJzZXJpZiIgZm9udC13ZWlnaHQ9IjkwMCIgZm9udC1zaXplPSI4OCIgZmlsbD0iIzFBMTkxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgbGV0dGVyLXNwYWNpbmc9Ii0yIj7siK88L3RleHQ+Cjwvc3ZnPg==">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -1395,7 +1402,40 @@ function checkLock(){
   }
 }
 
+/* ══ 아이콘 생성 ══ */
+function generateIcon(){
+  try{
+    const c=document.createElement('canvas');
+    c.width=192;c.height=192;
+    const ctx=c.getContext('2d');
+    // 주황 배경 (둥근 모서리)
+    const r=36;
+    ctx.beginPath();
+    ctx.moveTo(r,0);ctx.lineTo(192-r,0);ctx.quadraticCurveTo(192,0,192,r);
+    ctx.lineTo(192,192-r);ctx.quadraticCurveTo(192,192,192-r,192);
+    ctx.lineTo(r,192);ctx.quadraticCurveTo(0,192,0,192-r);
+    ctx.lineTo(0,r);ctx.quadraticCurveTo(0,0,r,0);ctx.closePath();
+    ctx.fillStyle='#E8650A';ctx.fill();
+    // 검정 숯 글자
+    ctx.fillStyle='#1A1916';
+    ctx.font='900 108px serif';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillText('숯',96,102);
+    const dataUrl=c.toDataURL('image/png');
+    // apple-touch-icon 동적 생성
+    let link=document.querySelector("link[rel='apple-touch-icon']");
+    if(!link){link=document.createElement('link');link.rel='apple-touch-icon';document.head.appendChild(link);}
+    link.href=dataUrl;
+    // favicon도 교체
+    let fav=document.querySelector("link[rel='icon']");
+    if(!fav){fav=document.createElement('link');fav.rel='icon';document.head.appendChild(fav);}
+    fav.href=dataUrl;
+  }catch(e){}
+}
+
 /* ══ 초기화 ══ */
+generateIcon();
 initAll();updateHeader();setupModeUI();refreshNew();checkLock();
 </script>
 </body>
