@@ -28,17 +28,17 @@ body{font-family:var(--sans);font-size:14px;color:var(--text);background:var(--b
 .unpaid-val{font-family:var(--mono);font-size:14px;font-weight:500;color:#F5A89A}
 
 .client-tabs{display:flex;background:var(--text);border-bottom:1px solid rgba(255,255,255,.1);position:sticky;top:49px;z-index:59}
-.client-tab{flex:1;padding:9px 4px;font-size:12px;font-weight:400;font-family:var(--sans);border:none;background:transparent;color:rgba(255,255,255,.42);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
-.client-tab.on{color:#fff;font-weight:500;border-bottom:2px solid #fff}
+.client-tab{flex:1;padding:11px 4px;font-size:15px;font-weight:400;font-family:var(--sans);border:none;background:transparent;color:rgba(255,255,255,.42);cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap}
+.client-tab.on{background:#fff;color:#1A1916;font-weight:700;border-bottom:3px solid #fff}
 
-.kpi-bar{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface2);border-bottom:1px solid var(--border);position:sticky;top:90px;z-index:58}
+.kpi-bar{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface2);border-bottom:1px solid var(--border);position:sticky;top:88px;z-index:58}
 .kpi-item{padding:9px 12px;border-right:1px solid var(--border)}
 .kpi-item:last-child{border-right:none}
 .kpi-val{font-family:var(--mono);font-size:15px;font-weight:500}
 .kpi-lbl{font-size:10px;color:var(--text3);margin-top:1px}
 .kpi-item.g .kpi-val{color:var(--green)}.kpi-item.r .kpi-val{color:var(--red)}.kpi-item.b .kpi-val{color:var(--blue)}
 
-.nav{display:flex;overflow-x:auto;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:138px;z-index:57;scrollbar-width:none}
+.nav{display:flex;overflow-x:auto;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:126px;z-index:57;scrollbar-width:none}
 .nav::-webkit-scrollbar{display:none}
 .nav button{flex:1;min-width:58px;padding:10px 4px;font-size:12px;font-family:var(--sans);font-weight:400;border:none;background:transparent;color:var(--text2);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all .15s}
 .nav button.on{color:var(--text);font-weight:500;border-bottom:2px solid var(--text)}
@@ -48,7 +48,7 @@ body{font-family:var(--sans);font-size:14px;color:var(--text);background:var(--b
 .page{display:none;padding:14px 16px}
 .page.on{display:block}
 #page-ledger{max-width:100%;padding:16px 24px}
-#page-packing,#page-new,#page-unpaid,#page-stats{max-width:640px;margin:0 auto}
+#page-packing,#page-new,#page-unpaid,#page-stats,#page-settings{max-width:640px;margin:0 auto}
 
 .sl{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin:20px 0 8px}
 .sl:first-child{margin-top:0}
@@ -268,9 +268,9 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
         <div class="fr"><label>이번 박스 수</label>
           <input type="number" id="pk-boxes" min="0" placeholder="예: 10" oninput="pkCalcHW()">
         </div>
-        <div class="fr"><label>이번 봉지 수</label>
-          <input type="number" id="pk-bags" min="0" max="4" placeholder="0~4" oninput="pkCalcHW()">
-          <div class="hint">5봉지=1박스 자동환산</div>
+        <div class="fr"><label>봉지 수</label>
+          <input type="number" id="pk-bags" min="0" placeholder="봉지 수" oninput="pkCalcHW()">
+          <div class="hint">봉지 5개 = 1박스 자동환산</div>
         </div>
       </div>
       <div id="pk-convert-box" class="convert-box" style="display:none">
@@ -355,9 +355,9 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
           <div class="fr"><label>박스 수</label>
             <input type="number" id="n-boxes" min="0" placeholder="예: 15" oninput="nCalcHW()">
           </div>
-          <div class="fr"><label>봉지 수 (박스 미만)</label>
-            <input type="number" id="n-bags" min="0" max="4" placeholder="0~4" oninput="nCalcHW()">
-            <div class="hint">5봉지→1박스 자동 환산</div>
+          <div class="fr"><label>봉지 수</label>
+            <input type="number" id="n-bags" min="0" placeholder="봉지 수" oninput="nCalcHW()">
+            <div class="hint">봉지 5개 = 1박스 자동환산</div>
           </div>
         </div>
         <div id="n-convert-box" class="convert-box" style="display:none;margin-bottom:0">
@@ -532,7 +532,7 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
       </div>
       <div class="fg">
         <div class="fr"><label>봉지 수 (박스 미만, 0~4)</label>
-          <input type="number" id="edit-bags-num" min="0" max="4" oninput="editCalcHW()">
+          <input type="number" id="edit-bags-num" min="0" oninput="editCalcHW()">
         </div>
         <div class="fr"><label>총 박스 환산 (자동)</label>
           <input type="number" id="edit-total-boxes" readonly>
@@ -1220,7 +1220,8 @@ function deleteEntry(){
 
 /* ══ 내비게이션 ══ */
 function renderPage(id){
-  ({ledger:refreshLedger,packing:refreshPacking,new:refreshNew,unpaid:refreshUnpaid,stats:refreshStats})[id]?.();
+  const fn={ledger:refreshLedger,packing:refreshPacking,new:refreshNew,unpaid:refreshUnpaid,stats:refreshStats,settings:refreshSettings};
+  if(fn[id]) fn[id]();
 }
 function go(id,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
@@ -1281,13 +1282,6 @@ function checkLock(){
 }
 
 /* ══ 초기화 ══ */
-// renderPage에 settings 추가
-const _origRenderPage=renderPage;
-function renderPage(id){
-  if(id==='settings'){refreshSettings();return;}
-  _origRenderPage(id);
-}
-
 initAll();updateHeader();setupModeUI();refreshLedger();checkLock();
 </script>
 </body>
