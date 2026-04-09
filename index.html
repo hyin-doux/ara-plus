@@ -520,6 +520,43 @@ tfoot td{padding:10px 14px;background:var(--surface2);font-weight:500;font-size:
 
 </div><!-- /main -->
 
+<!-- 포장 차수 수정 드로어 -->
+<div class="drawer-overlay" id="pack-edit-overlay" onclick="closePackEdit()"></div>
+<div class="drawer" id="pack-edit-drawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-header">
+    <h3 id="pack-edit-title">포장 수정</h3>
+    <button class="drawer-close" onclick="closePackEdit()">×</button>
+  </div>
+  <div class="drawer-body">
+    <input type="hidden" id="pe-entry-id">
+    <input type="hidden" id="pe-round-num">
+    <div class="ib ib-b" id="pe-round-info"></div>
+    <div class="fg3">
+      <div class="fr"><label>깡통 수</label>
+        <input type="number" id="pe-cans" min="1" max="16" placeholder="예: 4">
+        <div class="hint">16깡통=40포대</div>
+      </div>
+      <div class="fr"><label>박스 수</label>
+        <input type="number" id="pe-boxes" min="0" placeholder="예: 15">
+      </div>
+      <div class="fr"><label>봉지 수</label>
+        <input type="number" id="pe-bags" min="0" placeholder="봉지 수" oninput="peCalc()">
+        <div class="hint">5봉지=1박스 환산</div>
+      </div>
+    </div>
+    <div class="fg">
+      <div class="fr"><label>날짜</label><input type="date" id="pe-date"></div>
+      <div class="fr"><label>메모</label><input type="text" id="pe-memo" placeholder="메모"></div>
+    </div>
+    <div id="pe-calc" class="calc-hint"></div>
+  </div>
+  <div class="drawer-actions">
+    <button class="btn btn-o" onclick="closePackEdit()">취소</button>
+    <button class="btn btn-p" onclick="savePackEdit()">저장</button>
+  </div>
+</div>
+
 <!-- 수정 드로어 -->
 <div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
 <div class="drawer" id="edit-drawer">
@@ -644,10 +681,30 @@ async function loadFromCloud(){
     ['hari','adi','wiyen'].forEach(cl=>{
       const d=json[cl];
       if(!d) return;
-      if(d.entries&&d.entries.length) DB.s(cl,'entries',d.entries);
+      if(d.entries&&d.entries.length){
+        // 숫자 필드 정규화 (Sheets가 문자열로 반환할 수 있음)
+        const numFields=['id','sacks','boxes','bags','amount','grill','adiBoxes','totalKg','kgPer','beforeBoxes','afterBoxes','beforeKg','afterKg','boxReductionRate','kgReductionRate'];
+        const normalized=d.entries.map(e=>{
+          const n={...e};
+          numFields.forEach(f=>{
+            if(n[f]!==null&&n[f]!==undefined&&n[f]!==''){
+              const v=Number(n[f]);
+              n[f]=isNaN(v)?n[f]:v;
+            } else if(n[f]===''){
+              n[f]=null;
+            }
+          });
+          // 날짜 필드: ISO 형식이면 날짜만 추출
+          ['workDate','sendDate'].forEach(f=>{
+            if(n[f]&&String(n[f]).includes('T')) n[f]=String(n[f]).split('T')[0];
+          });
+          return n;
+        });
+        DB.s(cl,'entries',normalized);
+      }
       if(d.pr&&Object.keys(d.pr).length) DB.s(cl,'pr',d.pr);
       if(d.meta&&Object.keys(d.meta).length) DB.s(cl,'meta',d.meta);
-      if(d.nid) DB.s(cl,'nid',d.nid);
+      if(d.nid) DB.s(cl,'nid',Number(d.nid)||1);
     });
     showSyncStatus('✓ 최신 데이터 로드됨',2500);
     updateHeader();setupModeUI();kpi();
@@ -671,7 +728,15 @@ function showSyncStatus(msg,hideAfter){
   if(hideAfter) setTimeout(()=>el.style.opacity='0',hideAfter);
 }
 const fmtM=n=>n?'₩'+Number(n).toLocaleString():'—';
-const fmtD=d=>d?d.slice(2).replace(/-/g,'.'):'—';
+const fmtD=d=>{
+  if(!d) return '—';
+  const s=d.includes('T')?d.split('T')[0]:d;
+  return s.slice(2).replace(/-/g,'.');
+};
+const toDateInput=d=>{
+  if(!d) return '';
+  return d.includes('T')?d.split('T')[0]:d;
+};
 const today=()=>new Date().toISOString().split('T')[0];
 
 /* 봉지→박스 환산: 봉지 5개=1박스 */
@@ -701,15 +766,20 @@ const INIT={
   hari:{
     meta:{buyer:'한아',dest:'김포공장',pricePerSack:25500,mode:'hw'},
     entries:[
-      {id:1,name:'1회차',type:'출고',pay:'송금완료',workDate:'2025-11-09',sendDate:'2025-11-11',sacks:40,boxes:null,bags:null,amount:1020000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'(자금출처)쿠팡 매출+기타',memo:''},
-      {id:2,name:'2회차(소량)',type:'출고',pay:'송금완료',workDate:'2026-02-11',sendDate:null,sacks:12,boxes:null,bags:null,amount:306000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:''},
-      {id:3,name:'3회차(소량)',type:'출고',pay:'송금완료',workDate:'2026-02-18',sendDate:null,sacks:8,boxes:null,bags:null,amount:204000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'11.3 box'},
-      {id:4,name:'4회차(소량)',type:'출고',pay:'송금완료',workDate:'2026-02-22',sendDate:null,sacks:12,boxes:12,bags:1,amount:306000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'미납10포대 더하여 송금함(합계 ₩1,071,000)'},
-      {id:5,name:'미납 분량(결제함)',type:'출고',pay:'송금완료',workDate:null,sendDate:null,sacks:10,boxes:10,bags:0,amount:255000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'미납10포대 더하여 송금함(합계 ₩1,071,000)'},
-      {id:6,name:'미납(미결제 중)',type:'미납',pay:'미납',workDate:null,sendDate:null,sacks:null,boxes:null,bags:null,amount:null,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'대략 400만원 선, 4파렛 분량 추정. 빠른 시일 안에 처리해야 함.'},
-      {id:7,name:'5회차',type:'출고',pay:'미납',workDate:'2026-03-03',sendDate:null,sacks:18,boxes:8,bags:2,amount:459000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'포대원가 25,500원'},
-      {id:8,name:'6회차',type:'출고',pay:'미납',workDate:'2026-03-08',sendDate:null,sacks:40,boxes:null,bags:null,amount:1020000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:''},
-      {id:9,name:'7회차',type:'2차탄화',pay:'미납',workDate:'2026-03-15',sendDate:null,sacks:40,boxes:null,bags:null,amount:1020000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'3/16 2차탄화 완료 — 선별포장 진행중'},
+      {id:1,name:'1회차',type:'출고',pay:'송금완료',workDate:'2025-11-09',sendDate:'2025-11-11',sacks:40,boxes:null,bags:null,amount:1020000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:''},
+      {id:2,name:'2회차(소량)',type:'출고',pay:'송금완료',workDate:'2026-02-11',sendDate:'2026-03-15',sacks:12,boxes:null,bags:null,amount:306000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:''},
+      {id:3,name:'3회차(소량)',type:'출고',pay:'송금완료',workDate:'2026-02-18',sendDate:'2026-03-15',sacks:8,boxes:null,bags:null,amount:204000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'11.3 box'},
+      {id:4,name:'4회차(소량)',type:'출고',pay:'송금완료',workDate:'2026-02-22',sendDate:'2026-03-15',sacks:12,boxes:null,bags:null,amount:306000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'40bag(1,020,000원)+13bag(외상2)331,500원=1,351,500원'},
+      {id:5,name:'5회차',type:'출고',pay:'송금완료',workDate:'2026-03-03',sendDate:'2026-03-15',sacks:18,boxes:null,bags:null,amount:459000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'포대원가 25,500원'},
+      {id:6,name:'6회차',type:'출고',pay:'미납',workDate:'2026-03-08',sendDate:'2026-03-15',sacks:40,boxes:null,bags:null,amount:1020000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:''},
+      {id:7,name:'7회차',type:'미납',pay:'미납',workDate:'2026-03-15',sendDate:null,sacks:40,boxes:65,bags:4,amount:1020000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'40bag(1,020,000원)+13bag(외상2)331,500원=1,351,501원'},
+      {id:8,name:'8회차',type:'출고',pay:'미납',workDate:null,sendDate:null,sacks:40,boxes:68,bags:3,amount:1020000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'40bag(1,020,000원)+13bag(외상2)331,500원=1,351,501원'},
+      {id:9,name:'9회차',type:'2차탄화',pay:'미납',workDate:'2026-04-05',sendDate:null,sacks:80,boxes:51,bags:4,amount:2040000,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:''},
+      {id:10,name:'외상1',type:'미납(비협의)',pay:'미납',workDate:null,sendDate:null,sacks:13,boxes:null,bags:null,amount:331500,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'7회차 분 납입예정'},
+      {id:11,name:'외상2',type:'미납(비협의)',pay:'미납',workDate:null,sendDate:null,sacks:13,boxes:null,bags:null,amount:331500,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'8회차 분 납입예정'},
+      {id:12,name:'외상3',type:'미납(비협의)',pay:'미납',workDate:null,sendDate:null,sacks:13,boxes:null,bags:null,amount:331500,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'9회차 분 납입예정'},
+      {id:13,name:'외상4',type:'미납(비협의)',pay:'미납',workDate:null,sendDate:null,sacks:13,boxes:null,bags:null,amount:331500,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'10회차 분 납입예정'},
+      {id:14,name:'외상5',type:'미납(비협의)',pay:'미납',workDate:null,sendDate:null,sacks:21,boxes:null,bags:null,amount:535500,grill:null,buyer:'한아',dest:'김포공장',tax:'발행전',mgrMemo:'',memo:'11회차 분 납입예정'},
     ]
   },
   adi:{meta:{buyer:'아디',dest:'김포공장',pricePerSack:0,mode:'adi'},entries:[]},
@@ -721,7 +791,7 @@ function initAll(){
     if(!DB.g(cl,'entries')){
       DB.s(cl,'entries',INIT[cl].entries);
       DB.s(cl,'pr',{});
-      DB.s(cl,'nid',INIT[cl].entries.length+1);
+      DB.s(cl,'nid',cl==='hari'?15:INIT[cl].entries.length+1);
       DB.s(cl,'meta',INIT[cl].meta);
     }
   });
@@ -780,7 +850,7 @@ function kpi(){
     totalBoxVal=E.reduce((s,e)=>s+(e.adiBoxes||0),0)+'박스';
   } else {
     const PR=gPR();
-    const tb=E.reduce((s,e)=>{
+    const tb=E.filter(e=>e.type!=='미납(비협의)').reduce((s,e)=>{
       const pkRds=PR[e.id]||[];
       if(pkRds.length>0) return s+pkRds.reduce((ss,p)=>ss+(p.totalBoxes||0),0);
       return s+totalBoxes(e.boxes,e.bags);
@@ -792,15 +862,29 @@ function kpi(){
   ge('k-boxes').textContent=totalBoxVal;
   ge('k-amount').textContent=tA>=1000000?(tA/10000).toFixed(0)+'만원':tA?fmtM(tA):'—';
   ge('k-unpaid-cnt').textContent=unp.length+'건';
-  ge('h-unpaid').textContent=fmtM(uA);
+  const pureUnpaid=E.filter(e=>e.pay==='미납'&&e.amount&&e.type!=='미납(비협의)').reduce((s,e)=>s+(e.amount||0),0);
+  const oeisangTotal=E.filter(e=>e.type==='미납(비협의)'&&e.amount).reduce((s,e)=>s+(e.amount||0),0);
+  ge('h-unpaid').textContent=fmtM(pureUnpaid);
   if(ge('h-paid')) ge('h-paid').textContent=fmtM(pA);
+  // 외상 배지 업데이트
+  let oEl=document.getElementById('h-oeisang');
+  if(oeisangTotal>0){
+    if(!oEl){
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:8px;justify-content:flex-end';
+      row.innerHTML='<div style="font-size:10px;color:rgba(255,255,255,.4)">외상</div><div id="h-oeisang" style="font-family:var(--mono);font-size:13px;font-weight:500;color:#FAC775"></div>';
+      ge('h-unpaid').parentElement.appendChild(row);
+      oEl=document.getElementById('h-oeisang');
+    }
+    if(oEl) oEl.textContent=fmtM(oeisangTotal);
+  }
 }
 
 /* ══ 장부 ══ */
 function refreshLedger(){
   kpi();
   const E=gE(),PR=gPR(),adi=isAdi();
-  const tc={출고:'bg','2차탄화':'ba',미납:'br'};
+  const tc={출고:'bg','2차탄화':'ba',미납:'br','미납(비협의)':'br'};
   const pc={송금완료:'bg',미납:'br'};
   if(adi){
     ge('ledger-thead-row').innerHTML=`
@@ -849,9 +933,10 @@ function refreshLedger(){
       const tbStr=tb>0?tb+'박스':'—';
       const boxStr=dispBoxes!=null?dispBoxes+'박스'+(hasPackData?' (포장합산)':''):'—';
       const bagStr=dispBags!=null?(rem>0?rem+'봉지':'0봉지'):'—';
-      return `<tr class="clickable" onclick="openDrawer(${e.id})">
-        <td><strong>${e.name}</strong>${pb}</td>
-        <td><span class="badge ${tc[e.type]||'bk'}">${e.type}</span></td>
+      const isOeisang=e.type==='미납(비협의)';
+      return `<tr class="clickable" onclick="openDrawer(${e.id})" style="${isOeisang?'background:rgba(245,235,214,0.4)':''}">
+        <td><strong>${e.name}</strong>${pb}${isOeisang?' <span class="badge ba" style="font-size:10px">외상</span>':''}</td>
+        <td><span class="badge ${tc[e.type]||'bk'}">${isOeisang?'외상':e.type}</span></td>
         <td><span class="badge ${pc[e.pay]||'bk'}">${e.pay}</span></td>
         <td style="font-family:var(--mono)">${fmtD(e.workDate)}</td>
         <td style="font-family:var(--mono)">${fmtD(e.sendDate)}</td>
@@ -1012,21 +1097,30 @@ function renderPackList(){
         ${packs.length?`<div style="margin-top:6px">
           ${packs.map(p=>`<div class="pack-round">
             <div><span class="badge bb" style="margin-right:6px">${p.round}차</span><strong>${p.adiBoxes}박스</strong>${p.totalKg?' · '+p.totalKg+'kg':''}</div>
-            <div class="pr-meta">${fmtD(p.date)}${p.memo?' · '+p.memo:''}</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span class="pr-meta">${fmtD(p.date)}${p.memo?' · '+p.memo:''}</span>
+              <button onclick="editPackRound(${e.id},${p.round})" style="font-size:10px;padding:2px 7px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);color:var(--text2);cursor:pointer;flex-shrink:0">수정</button>
+              <button onclick="deletePackRound(${e.id},${p.round})" style="font-size:10px;padding:2px 7px;border:1px solid rgba(158,34,25,.3);border-radius:4px;background:var(--red-bg);color:var(--red);cursor:pointer;flex-shrink:0">삭제</button>
+            </div>
           </div>`).join('')}</div>
           <div class="pack-totals"><span>누적 <strong>${done}박스</strong></span></div>`
         :'<div style="font-size:12px;color:var(--text3);margin-top:6px">포장 기록 없음</div>'}
       </div>`;
     } else {
-      const doneBoxes=packs.reduce((s,p)=>s+(p.totalBoxes||0),0);
-      const doneBagsRem=packs.reduce((s,p)=>s+(p.remainBags||0),0);
+      /* ── 하리/위옌 ── */
+      const sumTotalBoxes=packs.reduce((s,p)=>s+(p.totalBoxes||0),0);
+      const sumRemBags=packs.reduce((s,p)=>s+(p.remainBags||0),0);
+      const extraFromRemBags=bagsToBoxes(sumRemBags);
+      const finalBoxes=sumTotalBoxes+extraFromRemBags;
+      const finalRemBags=remainBags(sumRemBags);
+      const hasPackData=packs.length>0;
       return `<div class="pack-card">
         <div class="pack-header">
           <div><div class="pack-name">${e.name}</div>
             <div class="pack-sub">투입 ${e.sacks||40}포대(16깡통) · ${packs.length}차 포장</div></div>
           <span class="badge ${packs.length?'bg':'bk'}">${packs.length}차완료</span>
         </div>
-        ${packs.length?`<div style="margin-top:6px">
+        ${hasPackData?`<div style="margin-top:6px">
           ${packs.map(p=>`<div class="pack-round">
             <div>
               <span class="badge bb" style="margin-right:6px">${p.round}차</span>
@@ -1034,20 +1128,98 @@ function renderPackList(){
               <strong>${p.totalBoxes}박스</strong>${p.remainBags>0?' +'+p.remainBags+'봉지':''}
               <span style="font-size:11px;color:var(--text2);margin-left:4px">(박스${p.boxes||0}+봉지${p.bags||0})</span>
             </div>
-            <div class="pr-meta">${fmtD(p.date)}${p.memo?' · '+p.memo:''}</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span class="pr-meta">${fmtD(p.date)}${p.memo?' · '+p.memo:''}</span>
+              <button onclick="editPackRound(${e.id},${p.round})" style="font-size:10px;padding:2px 7px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);color:var(--text2);cursor:pointer;flex-shrink:0">수정</button>
+              <button onclick="deletePackRound(${e.id},${p.round})" style="font-size:10px;padding:2px 7px;border:1px solid rgba(158,34,25,.3);border-radius:4px;background:var(--red-bg);color:var(--red);cursor:pointer;flex-shrink:0">삭제</button>
+            </div>
           </div>`).join('')}</div>
           <div class="pack-totals">
-            <span>누적 <strong>${doneBoxes}박스</strong>${doneBagsRem>0?' +'+doneBagsRem+'봉지':''}</span>
-            <span style="color:var(--text3)">→ 장부 자동반영중</span>
+            <span>누적 <strong>${sumTotalBoxes}박스</strong>${sumRemBags>0?' +'+sumRemBags+'봉지':''}</span>
+            ${extraFromRemBags>0?`<span style="color:var(--green);font-size:10px">→ 확정시 ${finalBoxes}박스+${finalRemBags}봉지</span>`:''}
+            <span style="color:var(--text3)">장부 자동반영중</span>
           </div>
-          <button class="btn btn-g" style="margin-top:10px;background:var(--green-bg);color:var(--green);border:none;padding:9px;font-size:13px;font-weight:500;border-radius:8px;width:100%;cursor:pointer" onclick="confirmPacking(${e.id},${doneBoxes},${doneBagsRem})">
-            ✓ 포장 완료 확정 (장부에 ${doneBoxes}박스${doneBagsRem>0?'+'+doneBagsRem+'봉지':''} 저장)
+          <button class="btn" style="margin-top:10px;background:var(--green-bg);color:var(--green);border:none;padding:9px;font-size:13px;font-weight:500;border-radius:8px;width:100%;cursor:pointer" onclick="confirmPacking(${e.id},${finalBoxes},${finalRemBags})">
+            ✓ 포장 완료 확정 (장부에 ${finalBoxes}박스${finalRemBags>0?'+'+finalRemBags+'봉지':''} 저장)
           </button>`
-        :'<div style="font-size:12px;color:var(--text3);margin-top:6px">포장 기록 없음 — 분할포장 탭에서 추가</div>'}
+        :(e.boxes!=null?`<div style="margin-top:8px;padding:8px 10px;background:var(--green-bg);border-radius:var(--r);font-size:12px;color:var(--green)">✓ 직접입력 완료 — ${e.boxes}박스${e.bags&&remainBags(e.bags)>0?' +'+remainBags(e.bags)+'봉지':''} (장부 반영됨)</div>`
+        :'<div style="font-size:12px;color:var(--text3);margin-top:6px">포장 기록 없음 — 분할포장 탭에서 추가</div>')}
       </div>`;
     }
   }).join('');
 }
+
+function editPackRound(entryId, roundNum){
+  const PR=gPR();
+  const packs=PR[entryId]||[];
+  const p=packs.find(x=>x.round===roundNum);
+  if(!p) return;
+  const e=gE().find(x=>x.id===entryId);
+  ge('pe-entry-id').value=entryId;
+  ge('pe-round-num').value=roundNum;
+  ge('pack-edit-title').textContent=e.name+' · '+roundNum+'차 수정';
+  ge('pe-round-info').textContent=roundNum+'차 · 현재: '+(p.cans||'?')+'깡통 '+p.totalBoxes+'박스'+(p.remainBags>0?' +'+p.remainBags+'봉지':'');
+  ge('pe-cans').value=p.cans||'';
+  ge('pe-boxes').value=p.boxes||'';
+  ge('pe-bags').value=p.bags||'';
+  ge('pe-date').value=toDateInput(p.date);
+  ge('pe-memo').value=p.memo||'';
+  ge('pe-calc').textContent='';
+  ge('pack-edit-overlay').classList.add('on');
+  ge('pack-edit-drawer').classList.add('on');
+}
+function peCalc(){
+  const boxes=parseInt(ge('pe-boxes').value)||0;
+  const bags=parseInt(ge('pe-bags').value)||0;
+  if(bags>0){
+    const extra=bagsToBoxes(bags);
+    const rem=remainBags(bags);
+    const total=boxes+extra;
+    ge('pe-calc').textContent=extra>0?`환산: ${boxes}박스+봉지${bags}개→${total}박스+${rem}봉지`:`봉지 ${bags}개 (${5-bags}개 더 모이면 1박스)`;
+  } else ge('pe-calc').textContent='';
+}
+function savePackEdit(){
+  const entryId=parseInt(ge('pe-entry-id').value);
+  const roundNum=parseInt(ge('pe-round-num').value);
+  const cans=parseInt(ge('pe-cans').value)||null;
+  const boxes=parseInt(ge('pe-boxes').value)||0;
+  const bags=parseInt(ge('pe-bags').value)||0;
+  const date=ge('pe-date').value||today();
+  const memo=ge('pe-memo').value.trim();
+  if(!boxes&&!bags){toast('박스 또는 봉지 수를 입력해주세요');return;}
+  const extra=bagsToBoxes(bags);
+  const rem=remainBags(bags);
+  const tb=boxes+extra;
+  const PR=gPR();
+  const idx=(PR[entryId]||[]).findIndex(p=>p.round===roundNum);
+  if(idx<0) return;
+  PR[entryId][idx]={
+    ...PR[entryId][idx],
+    cans,sacks:cans?Math.round(cans*2.5):null,
+    boxes,bags,bagsConverted:extra,remainBags:rem,totalBoxes:tb,
+    date,memo,ts:Date.now()
+  };
+  sPR(PR);
+  closePackEdit();
+  toast(roundNum+'차 포장 수정 완료 — '+tb+'박스'+(rem>0?' +'+rem+'봉지':''));
+  renderPackList();refreshLedger();kpi();
+}
+function closePackEdit(){
+  ge('pack-edit-overlay').classList.remove('on');
+  ge('pack-edit-drawer').classList.remove('on');
+}
+
+function deletePackRound(entryId, roundNum){
+  if(!confirm(roundNum+'차 포장 기록을 삭제할까요?')) return;
+  const PR=gPR();
+  if(!PR[entryId]) return;
+  PR[entryId]=PR[entryId].filter(p=>p.round!==roundNum);
+  PR[entryId].forEach((p,i)=>p.round=i+1);
+  sPR(PR);
+  toast(roundNum+'차 포장 삭제');
+  renderPackList();refreshLedger();kpi();
+}
+
 function confirmPacking(entryId, totalB, remBags){
   const E=gE();
   const idx=E.findIndex(e=>e.id===entryId);
@@ -1058,12 +1230,11 @@ function confirmPacking(entryId, totalB, remBags){
   const PR=gPR();
   const packs=PR[entryId]||[];
   // 박스 합계
-  const confirmedBoxes=packs.reduce((s,p)=>s+(p.boxes||0),0);
-  // 봉지 합계 → 5개 이상이면 추가 박스로 환산
-  const confirmedBags=packs.reduce((s,p)=>s+(p.bags||0),0);
-  const extraBoxes=bagsToBoxes(confirmedBags);
-  const finalBoxes=confirmedBoxes+extraBoxes;
-  const finalBags=remainBags(confirmedBags);
+  // 각 차수 totalBoxes 합산 + remainBags 합산 후 최종환산
+  const sumTotalBoxes=packs.reduce((s,p)=>s+(p.totalBoxes||0),0);
+  const sumRemBags=packs.reduce((s,p)=>s+(p.remainBags||0),0);
+  const finalBoxes=sumTotalBoxes+bagsToBoxes(sumRemBags);
+  const finalBags=remainBags(sumRemBags);
   E[idx].boxes=finalBoxes;
   E[idx].bags=finalBags;
   if(E[idx].type==='2차탄화') E[idx].type='출고';
@@ -1194,9 +1365,14 @@ function refreshUnpaid(){
   const unp=E.filter(e=>e.pay==='미납');
   const uA=unp.reduce((s,e)=>s+(e.amount||0),0);
   const big=E.find(e=>e.type==='미납'&&!e.amount);
+  const oeisangList=unp.filter(e=>e.type==='미납(비협의)');
+  const normalUnp=unp.filter(e=>e.type!=='미납(비협의)');
+  const normalAmt=normalUnp.reduce((s,e)=>s+(e.amount||0),0);
+  const oeisangAmt=oeisangList.reduce((s,e)=>s+(e.amount||0),0);
   let ah='';
-  if(big) ah+=`<div class="ib ib-r"><strong>미납(미결제)</strong>: ${big.memo||'금액 미확정'}</div>`;
-  if(uA) ah+=`<div class="ib ib-a">미납 합계: <strong>${fmtM(uA)}</strong></div>`;
+  if(normalAmt) ah+=`<div class="ib ib-r">미납 합계: <strong>${fmtM(normalAmt)}</strong> (${normalUnp.length}건)</div>`;
+  if(oeisangAmt) ah+=`<div class="ib ib-a">외상 합계: <strong>${fmtM(oeisangAmt)}</strong> (${oeisangList.length}건) — 7~11회차 분 납입예정</div>`;
+  if(uA) ah+=`<div class="ib" style="background:var(--surface2);color:var(--text2)">미납+외상 총합: <strong style="color:var(--text)">${fmtM(uA)}</strong></div>`;
   ge('unpaid-alerts').innerHTML=ah;
   const sel=ge('pay-sel');
   sel.innerHTML='<option value="">미납 회차 선택</option>';
@@ -1244,7 +1420,7 @@ function refreshStats(){
   ge('st-total').textContent=fmtM(tA);
   if(!adi){
     const price=parseInt(ge('st-price').value)||25500;
-    const tS=E.reduce((s,e)=>s+(e.sacks||0),0);
+    const tS=E.filter(e=>e.type!=='미납(비협의)').reduce((s,e)=>s+(e.sacks||0),0);
     const cost=tS*price;
     const margin=tA-cost;
     ge('st-sacks').textContent=tS+'포대';
@@ -1324,8 +1500,8 @@ function openDrawer(id){
   ge('edit-name').value=e.name||'';
   ge('edit-type').value=e.type||'출고';
   ge('edit-pay').value=e.pay||'미납';
-  ge('edit-work').value=e.workDate||'';
-  ge('edit-send').value=e.sendDate||'';
+  ge('edit-work').value=toDateInput(e.workDate);
+  ge('edit-send').value=toDateInput(e.sendDate);
   ge('edit-amount').value=e.amount||'';
   ge('edit-buyer').value=e.buyer||'';
   ge('edit-dest').value=e.dest||'';
